@@ -14,9 +14,9 @@ export function highlightSearchTerms(node, regex) {
           }
         }
 
-export function clearSearchHighlights(document) {
+export function clearSearchHighlights(root) {
 
-    document.querySelectorAll('.highlight').forEach(function(el) {
+    root.querySelectorAll('.highlight').forEach(function(el) {
         var parent = el.parentNode;
         parent.replaceChild(document.createTextNode(el.textContent), el);
         parent.normalize();

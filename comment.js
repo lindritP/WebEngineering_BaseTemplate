@@ -23,21 +23,29 @@ export function initCommentForm(form, list, nameField, commentField) {
     var nameValue = nameField.value
     var commentValue = commentField.value
 
-    list.appendChild(createCommentItem(nameValue, commentValue));
+    if (!nameValue || !commentValue) {
+        alert('Please fill in both name and comment fields.');
+        return;
+    }else {
+        list.appendChild(createCommentItem(nameValue, commentValue));
+    }
 
-    nameField.value = '';
+    
+
+    nameField.value = nameValue;
     commentField.value = '';
   });
 }
 
 function createCommentItem(name, comment) {
+
     
         var listItem = document.createElement('li');
         var namePara = document.createElement('p');
         var commentPara = document.createElement('p');
 
-        namePara.textContent = name;
-        commentPara.textContent = comment;
+        namePara.textContent = name.trim()
+        commentPara.textContent = comment.trim()
 
         listItem.appendChild(namePara);
         listItem.appendChild(commentPara);

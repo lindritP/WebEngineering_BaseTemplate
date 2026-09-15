@@ -2,16 +2,18 @@ import {highlightSearchTerms, clearSearchHighlights, buildRegex} from './search.
 import {initCommentForm, toggleComments } from './comment.js';
 import {fetchBearData} from './fetching.js';
 
+let articleElement = document.querySelector('article');
+
 function handleSearchSubmit(event) {
     event.preventDefault();
 
-    clearSearchHighlights(document.body);
+    clearSearchHighlights(articleElement);
 
     var searchKey = this.q.value.trim();
     if (!searchKey) return;
 
     var regex = buildRegex(searchKey);
-    highlightSearchTerms(document.body, regex);
+    highlightSearchTerms(articleElement, regex);
 }
 
 document.querySelector('.search').addEventListener('submit', handleSearchSubmit);
