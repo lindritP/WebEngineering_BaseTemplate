@@ -11,7 +11,7 @@
         origin: "*"
       };
 
-export function fetchBearData() {
+export async function fetchBearData() {
     var params = {
         action: "parse",
         page: title,
@@ -21,17 +21,29 @@ export function fetchBearData() {
         origin: "*"
       };
 
-fetch(baseUrl + "?" + new URLSearchParams(params).toString())
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          console.log(data);
-          extractBears(data.parse.wikitext['*']);
-        });
-
-
+      var wikiBearUrl = baseUrl + "?" + new URLSearchParams(params).toString();
+      try {
+        var res = await fetch(wikiBearUrl);
+        if (!res.ok) {
+          throw new Error('Wikipedia antwortet mit Status ' + res.status);
+        }
+        var data = await res.json();
+        if (data.error) {
+          throw new Error(data.error.info);
+        }
+         await extractBears(data.parse.wikitext['*']);
+      }catch (error) {
+        console.error('Fehler beim Abrufen der Bäreninformationen:', error);
+        var errorParagraph = document.createElement('p');
+        errorParagraph.textContent = 'Fehler beim Abrufen der Bäreninformationen. Bitte versuchen Sie es später erneut.';
+        var moreBearsTitle = document.querySelector('.more_bears');
+        moreBearsTitle.appendChild(errorParagraph);
+      }
+      
+    
     }
 
-      function fetchImageUrl(fileName) {
+async function fetchImageUrl(fileName) {
 
         var imageParams = {
           action: "query",
@@ -42,22 +54,34 @@ fetch(baseUrl + "?" + new URLSearchParams(params).toString())
           origin: "*"
         };
 
-        var url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
+        var wikiBearImageUrl = baseUrl + "?" + new URLSearchParams(imageParams).toString();
 
-        return fetch(url).then(function(res) {
-          return res.json();
-        }).then(function(data) {
+        var placeholderImageUrl = "media/placeholder-bear.png"; // Placeholder image URL
+
+        try{
+          var res = await fetch(wikiBearImageUrl);
+          if (!res.ok) {
+            throw new Error('Wikipedia antwortet mit Status ' + res.status);
+          }
+          var data = await res.json();
+          if (data.error) {
+            throw new Error(data.error.info);
+          }
           var pages = data.query.pages;
           var page = Object.values(pages)[0];
-          console.log(page);
-          if (!page.imageinfo) {
-            return "media/placeholder-bear.png"; 
+          if (!page.imageinfo){
+            return placeholderImageUrl; // Return placeholder if imageinfo is not available
           }
           return page.imageinfo[0].url;
-        });
+        } catch (error) {
+          console.error('Fehler beim Abrufen der Bärenbild-URL:', error);
+          return placeholderImageUrl;
+        }
+
+        
       }
 
-function extractBears(wikitext) {
+async function extractBears(wikitext) { 
         var speciesTables = wikitext.split('{{Species table/end}}');
         var bearPromises = [];
 
@@ -87,7 +111,7 @@ function extractBears(wikitext) {
           });
         });
 
-        Promise.all(bearPromises).then(function(bears) {
+       return Promise.all(bearPromises).then(function(bears) {
                 var moreBears = document.querySelector('.more_bears');
               
                   bears.forEach(function(bear) {
