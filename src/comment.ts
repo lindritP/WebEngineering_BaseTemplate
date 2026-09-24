@@ -1,6 +1,4 @@
-
-
-export function toggleComments(button, wrapper) {
+export function toggleComments(button: HTMLButtonElement, wrapper: HTMLElement) {
 
     wrapper.style.display = 'none';
     button.addEventListener("click",function(){
@@ -15,7 +13,7 @@ export function toggleComments(button, wrapper) {
    
 }
 
-export function initCommentForm(form, list, nameField, commentField) {
+export function initCommentForm(form: HTMLFormElement, list: HTMLElement, nameField: HTMLInputElement, commentField: HTMLInputElement) {
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -30,16 +28,13 @@ export function initCommentForm(form, list, nameField, commentField) {
         list.appendChild(createCommentItem(nameValue, commentValue));
     }
 
-    
-
     nameField.value = nameValue;
     commentField.value = '';
   });
 }
 
-function createCommentItem(name, comment) {
+function createCommentItem(name: string, comment: string) {
 
-    
         var listItem = document.createElement('li');
         var namePara = document.createElement('p');
         var commentPara = document.createElement('p');
@@ -52,4 +47,5 @@ function createCommentItem(name, comment) {
 
     return listItem
 }
+
 

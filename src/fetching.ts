@@ -1,27 +1,22 @@
+import type Bear from './types.js';
+
+
 // Fetching bear data 
       var baseUrl = "https://en.wikipedia.org/w/api.php";
       var title = "List_of_ursids";
-
-      var params = {
-        action: "parse",
-        page: title,
-        prop: "wikitext",
-        section: 3,
-        format: "json",
-        origin: "*"
-      };
 
 export async function fetchBearData() {
     var params = {
         action: "parse",
         page: title,
         prop: "wikitext",
-        section: 3,
+        section: "3",
         format: "json",
         origin: "*"
       };
 
       var wikiBearUrl = baseUrl + "?" + new URLSearchParams(params).toString();
+      
       try {
         var res = await fetch(wikiBearUrl);
         if (!res.ok) {
@@ -36,14 +31,17 @@ export async function fetchBearData() {
         console.error('Fehler beim Abrufen der Bäreninformationen:', error);
         var errorParagraph = document.createElement('p');
         errorParagraph.textContent = 'Fehler beim Abrufen der Bäreninformationen. Bitte versuchen Sie es später erneut.';
-        var moreBearsTitle = document.querySelector('.more_bears');
-        moreBearsTitle.appendChild(errorParagraph);
+
+        const moreBearsTitle = document.querySelector('.more_bears');
+        if (moreBearsTitle) {
+          moreBearsTitle.appendChild(errorParagraph);
+        }
       }
       
     
     }
 
-async function fetchImageUrl(fileName) {
+async function fetchImageUrl(fileName: string) {
 
         var imageParams = {
           action: "query",
@@ -69,10 +67,20 @@ async function fetchImageUrl(fileName) {
           }
           var pages = data.query.pages;
           var page = Object.values(pages)[0];
-          if (!page.imageinfo){
-            return placeholderImageUrl; // Return placeholder if imageinfo is not available
+          if (
+            typeof page === 'object' &&
+            page !== null &&
+            'imageinfo' in page &&
+            Array.isArray(page.imageinfo) &&
+            page.imageinfo.length > 0 &&
+            typeof page.imageinfo[0].url === 'string'
+          ) {
+            return page.imageinfo[0].url;   // alles geprüft → echte URL
           }
-          return page.imageinfo[0].url;
+
+          return placeholderImageUrl;   
+
+          
         } catch (error) {
           console.error('Fehler beim Abrufen der Bärenbild-URL:', error);
           return placeholderImageUrl;
@@ -81,9 +89,9 @@ async function fetchImageUrl(fileName) {
         
       }
 
-async function extractBears(wikitext) { 
+async function extractBears(wikitext: string) { 
         var speciesTables = wikitext.split('{{Species table/end}}');
-        var bearPromises = [];
+        var bearPromises: Promise<Bear>[] = [];
 
         speciesTables.forEach(function(table) {
           var rows = table.split('{{Species table/row');
@@ -93,26 +101,36 @@ async function extractBears(wikitext) {
             var imageMatch = row.match(/\|image=(.*?)\n/);
             var rangeMatch = row.match(/\|range=([^|\n]*)/);
 
-            if (nameMatch && binomialMatch && imageMatch) {
-              var fileName = imageMatch[1].trim().replace('File:', '');
+
+            const name = nameMatch?.[1]
+            const binomial = binomialMatch?.[1]
+            const image = imageMatch?.[1]
+
+
+            if (name  && binomial && image) {
+              var fileName = image.trim().replace('File:', '');
               
               var bearPromise = fetchImageUrl(fileName).then(function(imageUrl) {
-                var bear = {
-                  name: nameMatch[1],
-                  binomial: binomialMatch[1],
+                var bear: Bear = {
+                  name: name,
+                  binomial: binomial,
                   image: imageUrl,
-                  range: rangeMatch ? rangeMatch[1].trim() : "no range info"
+                  range: rangeMatch?.[1]?.trim() ?? "no range info"
                 };
                 return bear;
               });
               bearPromises.push(bearPromise);
-
             }
           });
         });
         
        var bears = await Promise.all(bearPromises);
-       var moreBears = document.querySelector('.more_bears');
+       const moreBears = document.querySelector('.more_bears');
+       if (!moreBears) {
+        console.error('Container .more_bears not found');
+        return bears;
+      }
+
        bears.forEach(function(bear) {
         var html = '<div class="bear">' +
                       '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
