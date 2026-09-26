@@ -5,12 +5,14 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
-  "build": "tsc && vite build",
-  "preview": "vite preview",
-  "lint": "eslint \"src/**/*.{js,ts}\"",
-  "lint:fix": "eslint \"src/**/*.{js,ts}\" --fix",
-  "format": "prettier --write \"src/**/*.{js,ts}\"",
-  "format:check": "prettier --check \"src/**/*.{js,ts}\""
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint \"src/**/*.{js,ts}\"",
+    "lint:fix": "eslint \"src/**/*.{js,ts}\" --fix",
+    "format": "prettier --write \"src/**/*.{js,ts}\"",
+    "format:check": "prettier --check \"src/**/*.{js,ts}\"",
+    "prepare": "husky",
+    "typecheck": "tsc"
   },
   "repository": {
     "type": "git",
@@ -30,6 +32,8 @@
     "eslint-config-love": "^157.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0",
     "typescript-eslint": "^8.70.1",
