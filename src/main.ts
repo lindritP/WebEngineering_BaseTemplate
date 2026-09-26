@@ -1,40 +1,43 @@
-import {highlightSearchTerms, clearSearchHighlights, buildRegex} from './search.ts';
-import {initCommentForm, toggleComments } from './comment.js';
-import {fetchBearData} from './fetching.js';
-import {getElement} from './helper.js';
+import {
+  highlightSearchTerms,
+  clearSearchHighlights,
+  buildRegex,
+} from './search.ts';
+import { initCommentForm, toggleComments } from './comment.js';
+import { fetchBearData } from './api/fetching.js';
+import { getElement } from './helper.js';
 
-let articleElement = getElement<HTMLElement>('article');
+const articleElement = getElement('article', HTMLElement);
 
-function handleSearchSubmit(event: Event) {
-    event.preventDefault();
+function handleSearchSubmit(event: Event): void {
+  event.preventDefault();
 
-    clearSearchHighlights(articleElement);
+  clearSearchHighlights(articleElement);
 
-    const searchInput = getElement<HTMLInputElement>('.search input[name="q"]');
-    var searchKey = searchInput.value.trim();
-    if (!searchKey) return;
+  const searchInput = getElement('.search input[name="q"]', HTMLInputElement);
+  const searchKey = searchInput.value.trim();
+  if (searchKey === '') return;
 
-    var regex = buildRegex(searchKey);
-    highlightSearchTerms(articleElement, regex);
+  const regex = buildRegex(searchKey);
+  highlightSearchTerms(articleElement, regex);
 }
 
-
-const searchForm = getElement<HTMLFormElement>('.search');
+const searchForm = getElement('.search', HTMLFormElement);
 
 searchForm.addEventListener('submit', handleSearchSubmit);
 
+const showHideBtn = getElement('.show-hide', HTMLDivElement);
 
-const showHideBtn = getElement<HTMLButtonElement>('.show-hide');
-
-const commentWrapper = getElement<HTMLDivElement>('.comment-wrapper');
+const commentWrapper = getElement('.comment-wrapper', HTMLDivElement);
 
 toggleComments(showHideBtn, commentWrapper);
 
-const form = getElement<HTMLFormElement>('.comment-form');
-var nameField = getElement<HTMLInputElement>('#name');
-var commentField = getElement<HTMLInputElement>('#comment');
-var list = getElement<HTMLUListElement>('.comment-container');
+const form = getElement('.comment-form', HTMLFormElement);
+const nameField = getElement('#name', HTMLInputElement);
+const commentField = getElement('#comment', HTMLInputElement);
+const list = getElement('.comment-container', HTMLUListElement);
 
 initCommentForm(form, list, nameField, commentField);
 
-fetchBearData();
+// Errors are handled inside fetchBearData, so the promise is ignored on purpose.
+void fetchBearData();

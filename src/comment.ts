@@ -1,31 +1,36 @@
-export function toggleComments(button: HTMLButtonElement, wrapper: HTMLElement) {
-
-    wrapper.style.display = 'none';
-    button.addEventListener("click",function(){
-     if (wrapper.style.display === 'none') {
-        wrapper.style.display = 'block';
-        button.textContent = 'Hide comments';
+export function toggleComments(
+  button: HTMLElement,
+  wrapper: HTMLElement
+): void {
+  wrapper.style.display = 'none';
+  button.addEventListener('click', function () {
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      button.textContent = 'Hide comments';
     } else {
-        wrapper.style.display = 'none';
-        button.textContent = 'Show comments';
+      wrapper.style.display = 'none';
+      button.textContent = 'Show comments';
     }
-})
-   
+  });
 }
 
-export function initCommentForm(form: HTMLFormElement, list: HTMLElement, nameField: HTMLInputElement, commentField: HTMLInputElement) {
+export function initCommentForm(
+  form: HTMLFormElement,
+  list: HTMLElement,
+  nameField: HTMLInputElement,
+  commentField: HTMLInputElement
+): void {
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
 
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
+    const nameValue = nameField.value;
+    const commentValue = commentField.value;
 
-    var nameValue = nameField.value
-    var commentValue = commentField.value
-
-    if (!nameValue || !commentValue) {
-        alert('Please fill in both name and comment fields.');
-        return;
-    }else {
-        list.appendChild(createCommentItem(nameValue, commentValue));
+    if (nameValue === '' || commentValue === '') {
+      //alert('Please fill in both name and comment fields.');
+      return;
+    } else {
+      list.appendChild(createCommentItem(nameValue, commentValue));
     }
 
     nameField.value = nameValue;
@@ -33,19 +38,16 @@ export function initCommentForm(form: HTMLFormElement, list: HTMLElement, nameFi
   });
 }
 
-function createCommentItem(name: string, comment: string) {
+function createCommentItem(name: string, comment: string): HTMLElement {
+  const listItem = document.createElement('li');
+  const namePara = document.createElement('p');
+  const commentPara = document.createElement('p');
 
-        var listItem = document.createElement('li');
-        var namePara = document.createElement('p');
-        var commentPara = document.createElement('p');
+  namePara.textContent = name.trim();
+  commentPara.textContent = comment.trim();
 
-        namePara.textContent = name.trim()
-        commentPara.textContent = comment.trim()
+  listItem.appendChild(namePara);
+  listItem.appendChild(commentPara);
 
-        listItem.appendChild(namePara);
-        listItem.appendChild(commentPara);
-
-    return listItem
+  return listItem;
 }
-
-
