@@ -9,3 +9,12 @@ export interface Comment {
   name: string;
   comment: string;
 }
+
+export interface BearType {
+  type: string;
+  coat: string;
+  adultSize: string;
+  habitat: string;
+  lifespan: string;
+  diet: string;
+}

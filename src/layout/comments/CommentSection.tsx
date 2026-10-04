@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactElement, SubmitEvent } from 'react';
-import type { Comment } from './types.ts';
+import type { Comment } from '../../types.ts';
 
 interface CommentSectionProps {
   // You can add props here if needed in the future
@@ -8,7 +8,7 @@ interface CommentSectionProps {
   onAddComment: (comment: Comment) => void;
 }
 
-export function CommentSection({
+export default function CommentSection({
   comments,
   onAddComment,
 }: CommentSectionProps): ReactElement {
@@ -76,28 +76,5 @@ export function CommentSection({
         ))}
       </ul>
     </div>
-  );
-}
-
-export function ToggleComments(): ReactElement {
-  const [open, setOpen] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-
-  function handleAddComment(newComment: Comment): void {
-    setComments((prevComments) => [...prevComments, newComment]);
-  }
-  return (
-    <section className="comments">
-      <button
-        onClick={() => {
-          setOpen((prevOpen) => !prevOpen);
-        }}
-      >
-        {open ? 'Hide comments' : 'Show comments'}
-      </button>
-      {open && (
-        <CommentSection comments={comments} onAddComment={handleAddComment} />
-      )}
-    </section>
   );
 }
