@@ -1,11 +1,16 @@
 import type { ReactElement } from 'react';
+import Highlight from '../search/Highlight.tsx';
 import type Bear from '../types.ts';
 
 interface BearCardProps {
   bear: Bear;
+  searchTerm: string;
 }
 
-export default function BearCard({ bear }: BearCardProps): ReactElement {
+export default function BearCard({
+  bear,
+  searchTerm,
+}: BearCardProps): ReactElement {
   return (
     <div
       className="bear"
@@ -17,9 +22,14 @@ export default function BearCard({ bear }: BearCardProps): ReactElement {
         style={{ width: '200px', height: 'auto' }}
       ></img>
       <p>
-        <b>{bear.name}</b> ({bear.binomial})
+        <b>
+          <Highlight text={bear.name} query={searchTerm} />
+        </b>{' '}
+        (<Highlight text={bear.binomial} query={searchTerm} />)
       </p>
-      <p>Range: {bear.range}</p>
+      <p>
+        Range: <Highlight text={bear.range} query={searchTerm} />
+      </p>
     </div>
   );
 }
