@@ -4,3 +4,8 @@ export default interface Bear {
   image: string;
   range: string;
 }
+
+export interface Comment {
+  name: string;
+  comment: string;
+}

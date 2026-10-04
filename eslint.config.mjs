@@ -5,11 +5,12 @@ import tseslint from 'typescript-eslint';
 import love from 'eslint-config-love';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   { ignores: ['dist/', 'node_modules/'] },
   {
-    files: ['src/**/*.{js,ts}'],
+    files: ['src/**/*.{js,ts,tsx}'],
     extends: [
       js.configs.recommended,
       // Successor of standard-with-typescript (type-aware, uses tsconfig.json).
@@ -19,6 +20,8 @@ export default defineConfig(
       tseslint.configs.recommended,
       // Runs Prettier as an ESLint rule and turns off conflicting rules
       eslintPluginPrettierRecommended,
+      // React Hooks rules (e.g. exhaustive-deps) are not included in the recommended
+      eslintPluginReactHooks.configs.flat.recommended,
       // Must stay last: disables all formatting rules that clash with Prettier
       eslintConfigPrettier,
     ],
