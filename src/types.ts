@@ -18,3 +18,9 @@ export interface BearType {
   lifespan: string;
   diet: string;
 }
+
+export type BearsState =
+  | { status: 'loading' }
+  | { status: 'success'; bears: Bear[] }
+  | { status: 'empty' }
+  | { status: 'error'; message: string };

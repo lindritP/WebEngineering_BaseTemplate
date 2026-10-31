@@ -3,8 +3,7 @@ import ToggleComments from '../layout/comments/ToggleComments.tsx';
 import type { BearType } from '../types.ts';
 import BearHabitat from './BearHabitat.tsx';
 import BearTypesTable from './BearTypesTable.tsx';
-import { sampleBears } from './sampleBears.ts';
-import BearCard from './BearCard.tsx';
+import MoreBears from './MoreBears.tsx';
 import Highlight from '../search/Highlight.tsx';
 
 const bearTypes: BearType[] = [
@@ -100,14 +99,7 @@ export default function BearArticle({
 
       <ToggleComments />
 
-      <section className="more_bears">
-        <h3 className="heading-md">
-          <Highlight text="More Bears" query={searchTerm} />
-        </h3>
-        {sampleBears.map((bear) => (
-          <BearCard key={bear.binomial} bear={bear} searchTerm={searchTerm} />
-        ))}
-      </section>
+      <MoreBears searchTerm={searchTerm} />
     </article>
   );
 }

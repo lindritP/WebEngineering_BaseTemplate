@@ -5,7 +5,7 @@ import { isWikiError, isWikiParseResponse, getImageUrl } from './wikipedia.js';
 const baseUrl = 'https://en.wikipedia.org/w/api.php';
 const title = 'List_of_ursids';
 
-export async function fetchBearData(): Promise<void> {
+export async function fetchBearData(signal?: AbortSignal): Promise<Bear[]> {
   const params = {
     action: 'parse',
     page: title,
@@ -17,39 +17,29 @@ export async function fetchBearData(): Promise<void> {
 
   const wikiBearUrl = `${baseUrl}?${new URLSearchParams(params).toString()}`;
 
-  try {
-    const res = await fetch(wikiBearUrl);
-    if (!res.ok) {
-      throw new Error(`Wikipedia antwortet mit Status ${res.status}`);
-    }
-    const data: unknown = await res.json();
-
-    // Wenn data ein error ist, dann enthält es error drinnen
-    if (isWikiError(data)) {
-      throw new Error(data.error.info);
-    }
-
-    // wenn data dann die richtige antwort gibt erwarten wir dass data da ist und data.parse und data.parse.wikitext und data.parse.wikitext["*"] ein string ist
-    if (isWikiParseResponse(data)) {
-      await extractBears(data.parse.wikitext['*']);
-      return;
-    }
-
-    throw new Error('Unerwartetes Antwortformat von Wikipedia');
-  } catch (error) {
-    console.error('Fehler beim Abrufen der Bäreninformationen:', error);
-    const errorParagraph = document.createElement('p');
-    errorParagraph.textContent =
-      'Fehler beim Abrufen der Bäreninformationen. Bitte versuchen Sie es später erneut.';
-
-    const moreBearsTitle = document.querySelector('.more_bears');
-    if (moreBearsTitle !== null) {
-      moreBearsTitle.appendChild(errorParagraph);
-    }
+  const res = await fetch(wikiBearUrl, { signal });
+  if (!res.ok) {
+    throw new Error(`Wikipedia antwortet mit Status ${res.status}`);
   }
+  const data: unknown = await res.json();
+
+  // Wenn data ein error ist, dann enthält es error drinnen
+  if (isWikiError(data)) {
+    throw new Error(data.error.info);
+  }
+
+  // wenn data dann die richtige antwort gibt erwarten wir dass data da ist und data.parse und data.parse.wikitext und data.parse.wikitext["*"] ein string ist
+  if (isWikiParseResponse(data)) {
+    return await extractBears(data.parse.wikitext['*'], signal);
+  }
+
+  throw new Error('Unerwartetes Antwortformat von Wikipedia');
 }
 
-async function fetchImageUrl(fileName: string): Promise<string> {
+async function fetchImageUrl(
+  fileName: string,
+  signal?: AbortSignal
+): Promise<string> {
   const imageParams = {
     action: 'query',
     titles: `File:${fileName}`,
@@ -61,10 +51,10 @@ async function fetchImageUrl(fileName: string): Promise<string> {
 
   const wikiBearImageUrl = `${baseUrl}?${new URLSearchParams(imageParams).toString()}`;
 
-  const placeholderImageUrl = 'media/placeholder-bear.png'; // Placeholder image URL
+  const placeholderImageUrl = '/media/placeholder-bear.png'; // Placeholder image URL
 
   try {
-    const res = await fetch(wikiBearImageUrl);
+    const res = await fetch(wikiBearImageUrl, { signal });
     if (!res.ok) {
       throw new Error(`Wikipedia antwortet mit Status ${res.status}`);
     }
@@ -75,12 +65,18 @@ async function fetchImageUrl(fileName: string): Promise<string> {
     }
     return getImageUrl(data) ?? placeholderImageUrl;
   } catch (error) {
-    // console.error('Fehler beim Abrufen der Bärenbild-URL:', error);
+    // A cancelled request is not a missing image: let the caller see it.
+    if (signal?.aborted === true) {
+      throw error;
+    }
     return placeholderImageUrl;
   }
 }
 
-async function extractBears(wikitext: string): Promise<Bear[]> {
+async function extractBears(
+  wikitext: string,
+  signal?: AbortSignal
+): Promise<Bear[]> {
   const speciesTables = wikitext.split('{{Species table/end}}');
   const bearPromises: Array<Promise<Bear>> = [];
 
@@ -99,35 +95,21 @@ async function extractBears(wikitext: string): Promise<Bear[]> {
       if (name !== undefined && binomial !== undefined && image !== undefined) {
         const fileName = image.trim().replace('File:', '');
 
-        const bearPromise = fetchImageUrl(fileName).then(function (imageUrl) {
-          const bear: Bear = {
-            name,
-            binomial,
-            image: imageUrl,
-            range: rangeMatch?.groups?.range?.trim() ?? 'no range info',
-          };
-          return bear;
-        });
+        const bearPromise = fetchImageUrl(fileName, signal).then(
+          function (imageUrl) {
+            const bear: Bear = {
+              name,
+              binomial,
+              image: imageUrl,
+              range: rangeMatch?.groups?.range?.trim() ?? 'no range info',
+            };
+            return bear;
+          }
+        );
         bearPromises.push(bearPromise);
       }
     });
   });
 
-  const bears = await Promise.all(bearPromises);
-  const moreBears = document.querySelector('.more_bears');
-  if (moreBears === null) {
-    console.error('Container .more_bears not found');
-    return bears;
-  }
-
-  bears.forEach(function (bear) {
-    const html =
-      `<div class="bear">` +
-      `<img src="${bear.image}" alt="Image of ${bear.name}" style="width:200px; height:auto;">` +
-      `<p><b>${bear.name}</b> (${bear.binomial})</p>` +
-      `<p>Range: ${bear.range}</p>` +
-      `</div>`;
-    moreBears.innerHTML += html;
-  });
-  return bears;
+  return await Promise.all(bearPromises);
 }
