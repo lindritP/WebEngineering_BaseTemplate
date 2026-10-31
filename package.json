@@ -2,17 +2,17 @@
   "name": "webengineering_basetemplate",
   "version": "1.0.0",
   "description": "This repository is designed as the foundation for coding playgrounds in the Web Engineering course. It offers a structured space for experimenting with and mastering various web development technologies and practices.  The project is based on [this](https://developer.mozilla.org/en-US/docs/Learn/Accessibility/Accessibility_troubleshooting) repository from MDN.",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{js,ts,tsx}\" --fix",
-    "format": "prettier --write \"src/**/*.{js,ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{js,ts,tsx}\"",
-    "prepare": "husky",
-    "typecheck": "tsc"
-  },
+ "scripts": {
+  "dev": "npm run dev --workspaces --if-present",
+  "build": "npm run build --workspaces --if-present",
+  "preview": "npm run preview -w @bears/web",
+  "typecheck": "npm run typecheck --workspaces --if-present",
+  "lint": "eslint \"apps/*/src/**/*.{js,ts,tsx}\"",
+  "lint:fix": "eslint \"apps/*/src/**/*.{js,ts,tsx}\" --fix",
+  "format": "prettier --write \"apps/*/src/**/*.{js,ts,tsx}\"",
+  "format:check": "prettier --check \"apps/*/src/**/*.{js,ts,tsx}\"",
+  "prepare": "husky"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lindritP/WebEngineering_BaseTemplate.git"
@@ -21,15 +21,16 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "private": "true",
+  "workspaces": [
+    "apps/*"
+  ],
   "bugs": {
     "url": "https://github.com/lindritP/WebEngineering_BaseTemplate/issues"
   },
   "homepage": "https://github.com/lindritP/WebEngineering_BaseTemplate#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^10.11.0",
     "eslint-config-love": "^157.0.0",
     "eslint-config-prettier": "^10.1.8",
@@ -39,12 +40,6 @@
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0",
-    "typescript-eslint": "^8.70.1",
-    "vite": "^8.3.0"
-  },
-  "dependencies": {
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "react-router": "^8.5.1"
+    "typescript-eslint": "^8.70.1"
   }
 }

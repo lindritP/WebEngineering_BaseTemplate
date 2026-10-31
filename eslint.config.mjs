@@ -8,9 +8,9 @@ import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
-  { ignores: ['dist/', 'node_modules/'] },
+  { ignores: ['**/dist/', '**/node_modules/'] },
   {
-    files: ['src/**/*.{js,ts,tsx}'],
+    files: ['apps/*/src/**/*.{js,ts,tsx}'],
     extends: [
       js.configs.recommended,
       // Successor of standard-with-typescript (type-aware, uses tsconfig.json).
