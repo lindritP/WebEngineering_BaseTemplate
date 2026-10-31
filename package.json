@@ -2,17 +2,17 @@
   "name": "webengineering_basetemplate",
   "version": "1.0.0",
   "description": "This repository is designed as the foundation for coding playgrounds in the Web Engineering course. It offers a structured space for experimenting with and mastering various web development technologies and practices.  The project is based on [this](https://developer.mozilla.org/en-US/docs/Learn/Accessibility/Accessibility_troubleshooting) repository from MDN.",
- "scripts": {
-  "dev": "npm run dev --workspaces --if-present",
-  "build": "npm run build --workspaces --if-present",
-  "preview": "npm run preview -w @bears/web",
-  "typecheck": "npm run typecheck --workspaces --if-present",
-  "lint": "eslint \"apps/*/src/**/*.{js,ts,tsx}\"",
-  "lint:fix": "eslint \"apps/*/src/**/*.{js,ts,tsx}\" --fix",
-  "format": "prettier --write \"apps/*/src/**/*.{js,ts,tsx}\"",
-  "format:check": "prettier --check \"apps/*/src/**/*.{js,ts,tsx}\"",
-  "prepare": "husky"
-},
+  "scripts": {
+    "dev": "concurrently --names api,web --prefix-colors blue,magenta --kill-others-on-fail \"npm run dev -w @bears/api\" \"npm run dev -w @bears/web\"",
+    "build": "npm run build --workspaces --if-present",
+    "preview": "npm run preview -w @bears/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint \"apps/*/src/**/*.{js,ts,tsx}\"",
+    "lint:fix": "eslint \"apps/*/src/**/*.{js,ts,tsx}\" --fix",
+    "format": "prettier --write \"apps/*/src/**/*.{js,ts,tsx}\"",
+    "format:check": "prettier --check \"apps/*/src/**/*.{js,ts,tsx}\"",
+    "prepare": "husky"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lindritP/WebEngineering_BaseTemplate.git"
@@ -21,7 +21,7 @@
   "author": "",
   "license": "ISC",
   "type": "module",
-  "private": "true",
+  "private": true,
   "workspaces": [
     "apps/*"
   ],
@@ -31,6 +31,7 @@
   "homepage": "https://github.com/lindritP/WebEngineering_BaseTemplate#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.6",
     "eslint": "^10.11.0",
     "eslint-config-love": "^157.0.0",
     "eslint-config-prettier": "^10.1.8",
