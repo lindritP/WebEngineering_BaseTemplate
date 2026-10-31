@@ -26,16 +26,6 @@ export default defineConfig(
       eslintConfigPrettier,
     ],
     rules: {
-      // DOM helpers receive elements as parameters in order to modify them
-      // (style, textContent, value). Reassigning the parameter itself stays forbidden.
-      'no-param-reassign': ['error', { props: false }],
-      // Destructuring a single property (const { value: name } = field) is less
-      // readable than plain property access, so this stylistic rule is relaxed.
-      '@typescript-eslint/prefer-destructuring': [
-        'error',
-        { array: false, object: false },
-        { enforceForRenamedProperties: false },
-      ],
       // console.error is used on purpose to report failures
       // (failed API requests, missing DOM containers); console.log stays forbidden.
       'no-console': ['error', { allow: ['error'] }],

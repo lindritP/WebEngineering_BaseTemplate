@@ -3,7 +3,6 @@ import type { ReactElement, SubmitEvent } from 'react';
 import type { Comment } from '../../types.ts';
 
 interface CommentSectionProps {
-  // You can add props here if needed in the future
   comments: Comment[];
   onAddComment: (comment: Comment) => void;
 }
@@ -19,7 +18,6 @@ export default function CommentSection({
     e.preventDefault();
 
     if (name.trim() === '' || commentText.trim() === '') {
-      //alert('Please fill in both name and comment fields.');
       return;
     }
 

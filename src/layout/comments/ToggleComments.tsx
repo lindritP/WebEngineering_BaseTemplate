@@ -13,6 +13,7 @@ export default function ToggleComments(): ReactElement {
   return (
     <section className="comments">
       <button
+        className="show-hide"
         onClick={() => {
           setOpen((prevOpen) => !prevOpen);
         }}

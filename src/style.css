@@ -19,9 +19,6 @@ body {
 
 /* || typography */
 
-font[size='7'],
-font[size='6'],
-font[size='5'],
 .heading-xl,
 .heading-lg,
 .heading-md {
@@ -38,7 +35,6 @@ label {
   color: #2a2a2a;
 }
 
-font[size='7'],
 .heading-xl {
   font-size: 4rem;
   text-align: center;
@@ -46,13 +42,11 @@ font[size='7'],
   text-shadow: 2px 2px 10px black;
 }
 
-font[size='6'],
 .heading-lg {
   font-size: 3rem;
   text-align: center;
 }
 
-font[size='5'],
 .heading-md {
   font-size: 2.2rem;
 }
@@ -201,14 +195,6 @@ audio {
 
 .show-hide {
   cursor: pointer;
-}
-
-.comments font[size='6'] {
-  font-size: 2rem;
-}
-
-.comments font[size='6']:nth-of-type(2) {
-  margin-bottom: 0;
 }
 
 .comment-form {
