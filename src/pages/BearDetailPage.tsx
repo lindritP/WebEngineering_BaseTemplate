@@ -21,7 +21,10 @@ export default function BearDetailPage({
   return (
     <article>
       <p>
-        <Link to={{ pathname: '/', search }}>← Back to all bears</Link>
+        <Link to={{ pathname: '/', search }}>
+          {/* The arrow is decoration; screen readers would read "left arrow" */}
+          <span aria-hidden="true">← </span>Back to all bears
+        </Link>
       </p>
       <BearDetailContent
         bears={bears}
@@ -44,10 +47,20 @@ function BearDetailContent({
   searchTerm,
 }: BearDetailContentProps): ReactElement {
   if (bears.status === 'loading') {
-    return <p>Loading bear…</p>;
+    return (
+      <>
+        <title>Loading bear – Wildlife Website</title>
+        <p role="status">Loading bear…</p>
+      </>
+    );
   }
   if (bears.status === 'error') {
-    return <p>{bears.message}</p>;
+    return (
+      <>
+        <title>Error – Wildlife Website</title>
+        <p role="alert">{bears.message}</p>
+      </>
+    );
   }
 
   // Derived from the loaded list and the route parameter, not stored as state.
@@ -57,7 +70,13 @@ function BearDetailContent({
       : undefined;
 
   if (bear === undefined) {
-    return <p>No bear with the id &quot;{bearId}&quot; was found.</p>;
+    return (
+      <>
+        <title>Bear not found – Wildlife Website</title>
+        <h2 className="heading-lg">Bear not found</h2>
+        <p>No bear with the id &quot;{bearId}&quot; was found.</p>
+      </>
+    );
   }
 
   return <BearDetail bear={bear} searchTerm={searchTerm} />;

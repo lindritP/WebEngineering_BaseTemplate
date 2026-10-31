@@ -86,6 +86,16 @@ export default function BearArticle({
           It looks like your browser doesn&apos;t support HTML5 audio players.
         </p>
       </audio>
+      {/* Text alternative for people who cannot hear the recording */}
+      <details className="transcript">
+        <summary>Audio transcript</summary>
+        <p>
+          <Highlight
+            text="[About six seconds of a bear's call: deep growls and grunts. No spoken words.]"
+            query={searchTerm}
+          />
+        </p>
+      </details>
 
       <aside>
         <h3 className="heading-md">

@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { ReactElement } from 'react';
 
 const relatedTitles = [
@@ -9,9 +10,13 @@ const relatedTitles = [
 ];
 
 export default function RelatedSidebar(): ReactElement {
+  const headingId = useId();
+
   return (
-    <div className="secondary">
-      <h2 className="heading-lg">Related</h2>
+    <aside className="secondary" aria-labelledby={headingId}>
+      <h2 id={headingId} className="heading-lg">
+        Related
+      </h2>
       <ul>
         {relatedTitles.map((title) => (
           <li key={title}>
@@ -19,6 +24,6 @@ export default function RelatedSidebar(): ReactElement {
           </li>
         ))}
       </ul>
-    </div>
+    </aside>
   );
 }

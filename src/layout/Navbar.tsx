@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { Link } from 'react-router';
+import { NavLink } from 'react-router';
 import SearchForm from './SearchForm.tsx';
 
 interface NavbarProps {
@@ -12,13 +12,16 @@ export default function Navbar({
   onSearch,
 }: NavbarProps): ReactElement {
   return (
-    <div className="header">
+    <header className="header">
       <h1 className="heading-xl">Welcome to our wildlife website</h1>
 
-      <div className="nav">
+      <nav className="nav" aria-label="Main">
         <ul>
           <li>
-            <Link to="/">Home</Link>
+            {/* NavLink sets aria-current="page" on the active route */}
+            <NavLink to="/" end>
+              Home
+            </NavLink>
           </li>
           <li>
             <a href="#">Our team</a>
@@ -30,14 +33,8 @@ export default function Navbar({
             <a href="#">Blog</a>
           </li>
         </ul>
-        {/* The key resets the draft input whenever the term in the URL changes
-            (back/forward, Home link), so the input never shows a stale term. */}
-        <SearchForm
-          key={searchTerm}
-          initialTerm={searchTerm}
-          onSearch={onSearch}
-        />
-      </div>
-    </div>
+        <SearchForm initialTerm={searchTerm} onSearch={onSearch} />
+      </nav>
+    </header>
   );
 }

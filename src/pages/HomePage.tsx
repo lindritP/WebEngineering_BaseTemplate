@@ -11,5 +11,11 @@ interface HomePageProps {
 export default function HomePage({ bears }: HomePageProps): ReactElement {
   const [searchTerm] = useSearchTerm();
 
-  return <BearArticle bears={bears} searchTerm={searchTerm} />;
+  return (
+    <>
+      {/* React 19 moves <title> into <head>: every route gets its own title */}
+      <title>The trouble with Bears – Wildlife Website</title>
+      <BearArticle bears={bears} searchTerm={searchTerm} />
+    </>
+  );
 }

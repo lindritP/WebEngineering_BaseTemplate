@@ -4,6 +4,7 @@ import { isWikiError, isWikiParseResponse, getImageUrl } from './wikipedia.js';
 // Fetching bear data
 const baseUrl = 'https://en.wikipedia.org/w/api.php';
 const title = 'List_of_ursids';
+export const PLACEHOLDER_IMAGE_URL = '/media/placeholder-bear.png';
 
 export async function fetchBearData(signal?: AbortSignal): Promise<Bear[]> {
   const params = {
@@ -51,8 +52,6 @@ async function fetchImageUrl(
 
   const wikiBearImageUrl = `${baseUrl}?${new URLSearchParams(imageParams).toString()}`;
 
-  const placeholderImageUrl = '/media/placeholder-bear.png'; // Placeholder image URL
-
   try {
     const res = await fetch(wikiBearImageUrl, { signal });
     if (!res.ok) {
@@ -63,13 +62,13 @@ async function fetchImageUrl(
     if (isWikiError(data)) {
       throw new Error(data.error.info);
     }
-    return getImageUrl(data) ?? placeholderImageUrl;
+    return getImageUrl(data) ?? PLACEHOLDER_IMAGE_URL;
   } catch (error) {
     // A cancelled request is not a missing image: let the caller see it.
     if (signal?.aborted === true) {
       throw error;
     }
-    return placeholderImageUrl;
+    return PLACEHOLDER_IMAGE_URL;
   }
 }
 

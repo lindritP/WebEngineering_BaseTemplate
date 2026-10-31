@@ -18,13 +18,23 @@ export default function MoreBears({
       <h3 className="heading-md">
         <Highlight text="More Bears" query={searchTerm} />
       </h3>
-      {bearsState.status === 'loading' && <p>Loading bears…</p>}
-      {bearsState.status === 'empty' && <p>No bears found.</p>}
-      {bearsState.status === 'error' && <p>{bearsState.message}</p>}
-      {bearsState.status === 'success' &&
-        bearsState.bears.map((bear) => (
-          <BearCard key={getBearId(bear)} bear={bear} searchTerm={searchTerm} />
-        ))}
+      {/* role="status"/"alert" let screen readers announce the loading result */}
+      {bearsState.status === 'loading' && <p role="status">Loading bears…</p>}
+      {bearsState.status === 'empty' && <p role="status">No bears found.</p>}
+      {bearsState.status === 'error' && (
+        <p role="alert">{bearsState.message}</p>
+      )}
+      {bearsState.status === 'success' && (
+        <ul className="bear-list">
+          {bearsState.bears.map((bear) => (
+            <BearCard
+              key={getBearId(bear)}
+              bear={bear}
+              searchTerm={searchTerm}
+            />
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
