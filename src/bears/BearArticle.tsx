@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import ToggleComments from '../layout/comments/ToggleComments.tsx';
-import type { BearType } from '../types.ts';
+import type { BearType, BearsState } from '../types.ts';
 import BearHabitat from './BearHabitat.tsx';
 import BearTypesTable from './BearTypesTable.tsx';
 import MoreBears from './MoreBears.tsx';
@@ -26,10 +26,12 @@ const bearTypes: BearType[] = [
 ];
 
 interface BearArticleProps {
+  bears: BearsState;
   searchTerm: string;
 }
 
 export default function BearArticle({
+  bears,
   searchTerm,
 }: BearArticleProps): ReactElement {
   return (
@@ -99,7 +101,7 @@ export default function BearArticle({
 
       <ToggleComments />
 
-      <MoreBears searchTerm={searchTerm} />
+      <MoreBears bearsState={bears} searchTerm={searchTerm} />
     </article>
   );
 }

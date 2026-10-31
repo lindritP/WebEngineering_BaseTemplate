@@ -2,13 +2,16 @@ import { useState } from 'react';
 import type { ReactElement, SubmitEvent } from 'react';
 
 interface SearchFormProps {
+  initialTerm: string;
   onSearch: (term: string) => void;
 }
 
 export default function SearchForm({
+  initialTerm,
   onSearch,
 }: SearchFormProps): ReactElement {
-  const [searchQuery, setSearchQuery] = useState('');
+  // Draft value while typing; the submitted term lives in the URL.
+  const [searchQuery, setSearchQuery] = useState(initialTerm);
 
   function handleSubmit(e: SubmitEvent<HTMLFormElement>): void {
     e.preventDefault();

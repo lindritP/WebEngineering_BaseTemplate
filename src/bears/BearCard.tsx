@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
+import { Link, useLocation } from 'react-router';
 import Highlight from '../search/Highlight.tsx';
 import type Bear from '../types.ts';
+import { getBearId } from './bearId.ts';
 
 interface BearCardProps {
   bear: Bear;
@@ -11,6 +13,9 @@ export default function BearCard({
   bear,
   searchTerm,
 }: BearCardProps): ReactElement {
+  // Keep the current query string (?q=...) when opening the detail route.
+  const { search } = useLocation();
+
   return (
     <div
       className="bear"
@@ -23,7 +28,9 @@ export default function BearCard({
       ></img>
       <p>
         <b>
-          <Highlight text={bear.name} query={searchTerm} />
+          <Link to={{ pathname: `/bears/${getBearId(bear)}`, search }}>
+            <Highlight text={bear.name} query={searchTerm} />
+          </Link>
         </b>{' '}
         (<Highlight text={bear.binomial} query={searchTerm} />)
       </p>
