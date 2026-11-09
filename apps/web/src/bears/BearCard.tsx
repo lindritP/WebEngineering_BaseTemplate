@@ -2,8 +2,7 @@ import type { ReactElement } from 'react';
 import { Link, useLocation } from 'react-router';
 import Highlight from '../search/Highlight.tsx';
 import type Bear from '../types.ts';
-import { getBearId } from './bearId.ts';
-import { getBearImageAlt } from './bearImageAlt.ts';
+import BearImage from './BearImage.tsx';
 
 interface BearCardProps {
   bear: Bear;
@@ -21,11 +20,11 @@ export default function BearCard({
   return (
     <li className="bear">
       <h4>
-        <Link to={{ pathname: `/bears/${getBearId(bear)}`, search }}>
+        <Link to={{ pathname: `/bears/${bear.id}`, search }}>
           <Highlight text={bear.name} query={searchTerm} />
         </Link>
       </h4>
-      <img src={bear.image} alt={getBearImageAlt(bear)} />
+      <BearImage bear={bear} />
       <p>
         Scientific name:{' '}
         <i>

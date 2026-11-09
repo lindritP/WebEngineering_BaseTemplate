@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import Highlight from '../search/Highlight.tsx';
 import type Bear from '../types.ts';
-import { getBearImageAlt } from './bearImageAlt.ts';
+import BearImage from './BearImage.tsx';
 
 interface BearDetailProps {
   bear: Bear;
@@ -20,11 +20,7 @@ export default function BearDetail({
       <h2 className="heading-lg">
         <Highlight text={bear.name} query={searchTerm} />
       </h2>
-      <img
-        className="bear-detail-image"
-        src={bear.image}
-        alt={getBearImageAlt(bear)}
-      />
+      <BearImage bear={bear} className="bear-detail-image" />
       <p>
         Scientific name:{' '}
         <i>

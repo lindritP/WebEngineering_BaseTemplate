@@ -1,7 +1,6 @@
 import type { ReactElement } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import BearDetail from '../bears/BearDetail.tsx';
-import { getBearId } from '../bears/bearId.ts';
 import useSearchTerm from '../search/useSearchTerm.ts';
 import type { BearsState } from '../types.ts';
 
@@ -66,7 +65,7 @@ function BearDetailContent({
   // Derived from the loaded list and the route parameter, not stored as state.
   const bear =
     bears.status === 'success'
-      ? bears.bears.find((candidate) => getBearId(candidate) === bearId)
+      ? bears.bears.find((candidate) => candidate.id === bearId)
       : undefined;
 
   if (bear === undefined) {

@@ -1,7 +1,8 @@
 export default interface Bear {
+  id: string;
   name: string;
   binomial: string;
-  image: string;
+  imageUrl: string | null;
   range: string;
 }
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { fetchBearData } from '../api/fetching.ts';
+import { fetchBears } from '../api/bears.ts';
 import type { BearsState } from '../types.ts';
 
-// Synchronizes the component with the Wikipedia API. The AbortController
+// Synchronizes the component with the Bear API. The AbortController
 // cancels the request when the owner unmounts (and during StrictMode's dev-only
 // remount), so a stale response can never overwrite newer state.
 export default function useBears(): BearsState {
@@ -11,7 +11,7 @@ export default function useBears(): BearsState {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetchBearData(controller.signal)
+    fetchBears(controller.signal)
       .then((bears) => {
         const [firstBear] = bears;
         setState(

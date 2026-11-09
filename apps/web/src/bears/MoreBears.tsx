@@ -2,7 +2,6 @@ import type { ReactElement } from 'react';
 import Highlight from '../search/Highlight.tsx';
 import type { BearsState } from '../types.ts';
 import BearCard from './BearCard.tsx';
-import { getBearId } from './bearId.ts';
 
 interface MoreBearsProps {
   bearsState: BearsState;
@@ -27,11 +26,7 @@ export default function MoreBears({
       {bearsState.status === 'success' && (
         <ul className="bear-list">
           {bearsState.bears.map((bear) => (
-            <BearCard
-              key={getBearId(bear)}
-              bear={bear}
-              searchTerm={searchTerm}
-            />
+            <BearCard key={bear.id} bear={bear} searchTerm={searchTerm} />
           ))}
         </ul>
       )}
