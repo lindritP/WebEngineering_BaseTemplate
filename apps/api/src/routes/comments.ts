@@ -1,0 +1,42 @@
+import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+import { findBear } from '../bears/findBear.js';
+import { CreateCommentSchema } from '../comments/comment.js';
+import type { InMemoryCommentStore } from '../comments/commentStore.js';
+import { ValidationError } from '../errors.js';
+
+const CREATED = 201;
+
+interface BearParams {
+  Params: { id: string };
+}
+
+export function registerCommentRoutes(
+  app: FastifyInstance,
+  store: InMemoryCommentStore
+): void {
+  app.get<BearParams>('/api/bears/:id/comments', async ({ params: { id } }) => {
+    await findBear(id);
+    return store.list(id);
+  });
+
+  app.post<BearParams>(
+    '/api/bears/:id/comments',
+    async ({ params: { id }, body }, reply) => {
+      await findBear(id);
+
+      const result = CreateCommentSchema.safeParse(body);
+      if (!result.success) {
+        throw new ValidationError(z.prettifyError(result.error), {
+          cause: result.error,
+        });
+      }
+
+      const comment = store.add(id, result.data);
+      void reply
+        .code(CREATED)
+        .header('Location', `/api/comments/${comment.id}`);
+      return comment;
+    }
+  );
+}

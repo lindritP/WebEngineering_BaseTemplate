@@ -10,6 +10,10 @@ export class NotFoundError extends Error {
   readonly statusCode = 404;
 }
 
+export class ValidationError extends Error {
+  readonly statusCode = 400;
+}
+
 //
 // 502 Bad Gateway: Wikipedia ist nicht erreichbar, antwortet mit einem Fehler oder liefert etwas Unerwartetes.
 // 504 Gateway Timeout: Wikipedia hat nicht rechtzeitig geantwortet.
