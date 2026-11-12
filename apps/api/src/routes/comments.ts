@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import { findBear } from '../bears/findBear.js';
 import { CreateCommentSchema } from '../comments/comment.js';
 import type { InMemoryCommentStore } from '../comments/commentStore.js';
@@ -32,9 +31,7 @@ export function registerCommentRoutes(
 
       const result = CreateCommentSchema.safeParse(body);
       if (!result.success) {
-        throw new ValidationError(z.prettifyError(result.error), {
-          cause: result.error,
-        });
+        throw ValidationError.fromZod(result.error);
       }
 
       const comment = store.add(id, result.data);
