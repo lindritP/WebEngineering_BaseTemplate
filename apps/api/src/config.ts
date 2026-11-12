@@ -6,4 +6,6 @@ export const config = {
   upstreamTimeoutMs: Number(
     process.env.UPSTREAM_TIMEOUT_MS ?? DEFAULT_UPSTREAM_TIMEOUT_MS
   ),
+  // Off unless explicitly switched on: never reachable in a normal deployment.
+  enableDebugRoutes: process.env.ENABLE_DEBUG_ROUTES === 'true',
 };
