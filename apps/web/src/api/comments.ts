@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { Comment, NewComment } from '../types.ts';
+import { toApiError } from './problem.ts';
 
 const NOT_FOUND = 404;
 
@@ -22,7 +23,7 @@ async function parseResponse<T>(
   schema: z.ZodType<T>
 ): Promise<T> {
   if (!res.ok) {
-    throw new Error(`The API answered with status ${res.status}`);
+    throw await toApiError(res);
   }
   const result = schema.safeParse(await res.json());
   if (!result.success) {
@@ -60,6 +61,6 @@ export async function deleteComment(commentId: string): Promise<void> {
   // DELETE is idempotent: a 404 means the comment is already gone (for
   // example deleted in another tab), which is the state the user wanted.
   if (!res.ok && res.status !== NOT_FOUND) {
-    throw new Error(`The API answered with status ${res.status}`);
+    throw await toApiError(res);
   }
 }

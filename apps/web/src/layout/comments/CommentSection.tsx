@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import type { ReactElement, SubmitEvent } from 'react';
+import { errorMessage } from '../../api/problem.ts';
 import type { Comment, CommentsState, NewComment } from '../../types.ts';
 import useComments from './useComments.ts';
 
@@ -46,7 +47,7 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
   const nameMissing = name.trim() === '';
   const commentMissing = commentText.trim() === '';
   const showError = submitAttempted && (nameMissing || commentMissing);
-  const errorMessage = showError
+  const formMessage = showError
     ? 'Please fill in both your name and a comment.'
     : submitError;
 
@@ -69,7 +70,12 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
       setSubmitAttempted(false);
     } catch (error) {
       console.error('Could not save the comment:', error);
-      setSubmitError('Your comment could not be saved. Please try again.');
+      setSubmitError(
+        errorMessage(
+          error,
+          'Your comment could not be saved. Please try again.'
+        )
+      );
     } finally {
       setSubmitting(false);
     }
@@ -88,7 +94,7 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
       {/* The live region is always rendered, so screen readers announce
           the message when its text appears. */}
       <p id={errorId} role="alert" className="form-error">
-        {errorMessage}
+        {formMessage}
       </p>
       <div className="flex-pair">
         <label htmlFor={nameId}>Your name:</label>
@@ -100,7 +106,7 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
           required
           maxLength={AUTHOR_MAX_LENGTH}
           aria-invalid={showError && nameMissing}
-          aria-describedby={errorMessage === '' ? undefined : errorId}
+          aria-describedby={formMessage === '' ? undefined : errorId}
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -117,7 +123,7 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
           required
           maxLength={TEXT_MAX_LENGTH}
           aria-invalid={showError && commentMissing}
-          aria-describedby={errorMessage === '' ? undefined : errorId}
+          aria-describedby={formMessage === '' ? undefined : errorId}
           value={commentText}
           onChange={(e) => {
             setCommentText(e.target.value);
@@ -170,17 +176,19 @@ interface CommentItemProps {
 
 function CommentItem({ comment, onDelete }: CommentItemProps): ReactElement {
   const [deleting, setDeleting] = useState(false);
-  const [deleteFailed, setDeleteFailed] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   async function handleDelete(): Promise<void> {
     setDeleting(true);
-    setDeleteFailed(false);
+    setDeleteError('');
     try {
       // On success the item disappears from the list and unmounts.
       await onDelete(comment.id);
     } catch (error) {
       console.error('Could not delete the comment:', error);
-      setDeleteFailed(true);
+      setDeleteError(
+        errorMessage(error, 'Could not delete. Please try again.')
+      );
       setDeleting(false);
     }
   }
@@ -206,7 +214,7 @@ function CommentItem({ comment, onDelete }: CommentItemProps): ReactElement {
         <span className="visually-hidden"> comment by {comment.author}</span>
       </button>
       <p role="alert" className="comment-error">
-        {deleteFailed ? 'Could not delete. Please try again.' : ''}
+        {deleteError}
       </p>
     </li>
   );

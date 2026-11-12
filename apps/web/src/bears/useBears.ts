@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchBears } from '../api/bears.ts';
+import { errorMessage } from '../api/problem.ts';
 import type { BearsState } from '../types.ts';
 
 // Synchronizes the component with the Bear API. The AbortController
@@ -28,8 +29,10 @@ export default function useBears(): BearsState {
         console.error('Fehler beim Abrufen der Bäreninformationen:', error);
         setState({
           status: 'error',
-          message:
-            'Fehler beim Abrufen der Bäreninformationen. Bitte versuchen Sie es später erneut.',
+          message: errorMessage(
+            error,
+            'Fehler beim Abrufen der Bäreninformationen. Bitte versuchen Sie es später erneut.'
+          ),
         });
       });
 

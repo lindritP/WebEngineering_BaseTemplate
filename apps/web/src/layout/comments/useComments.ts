@@ -4,6 +4,7 @@ import {
   deleteComment,
   fetchComments,
 } from '../../api/comments.ts';
+import { errorMessage } from '../../api/problem.ts';
 import type { CommentsState, NewComment } from '../../types.ts';
 
 export interface UseComments {
@@ -33,7 +34,10 @@ export default function useComments(bearId: string): UseComments {
         console.error('Could not load the comments:', error);
         setState({
           status: 'error',
-          message: 'Comments could not be loaded. Please try again later.',
+          message: errorMessage(
+            error,
+            'Comments could not be loaded. Please try again later.'
+          ),
         });
       });
 
