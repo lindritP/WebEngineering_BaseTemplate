@@ -6,10 +6,25 @@ export default interface Bear {
   range: string;
 }
 
+// A comment as the API returns it: id, bearId and createdAt come from the server.
 export interface Comment {
-  name: string;
-  comment: string;
+  id: string;
+  bearId: string;
+  author: string;
+  text: string;
+  createdAt: string;
 }
+
+// What the form sends to the API.
+export interface NewComment {
+  author: string;
+  text: string;
+}
+
+export type CommentsState =
+  | { status: 'loading' }
+  | { status: 'success'; comments: Comment[] }
+  | { status: 'error'; message: string };
 
 export interface BearType {
   type: string;

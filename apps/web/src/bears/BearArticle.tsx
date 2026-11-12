@@ -1,5 +1,4 @@
 import type { ReactElement } from 'react';
-import ToggleComments from '../layout/comments/ToggleComments.tsx';
 import type { BearType, BearsState } from '../types.ts';
 import BearHabitat from './BearHabitat.tsx';
 import BearTypesTable from './BearTypesTable.tsx';
@@ -108,8 +107,6 @@ export default function BearArticle({
           />
         </p>
       </aside>
-
-      <ToggleComments />
 
       <MoreBears bearsState={bears} searchTerm={searchTerm} />
     </article>

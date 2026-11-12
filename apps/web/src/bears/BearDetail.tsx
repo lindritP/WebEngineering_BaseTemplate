@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import ToggleComments from '../layout/comments/ToggleComments.tsx';
 import Highlight from '../search/Highlight.tsx';
 import type Bear from '../types.ts';
 import BearImage from './BearImage.tsx';
@@ -36,6 +37,10 @@ export default function BearDetail({
           <span className="visually-hidden"> (opens in a new tab)</span>
         </a>
       </p>
+      {/* Comments belong to one bear. The key gives every bear a fresh
+          comment section, so nothing (open panel, half-typed text, loaded
+          list) leaks over when navigating from one bear to the next. */}
+      <ToggleComments key={bear.id} bearId={bear.id} />
     </>
   );
 }
