@@ -1,27 +1,31 @@
-import { readFileSync } from 'node:fs';
 import type { FastifyInstance } from 'fastify';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { z } from 'zod';
+import { OK } from '../httpStatus.js';
+import { API_VERSION } from '../version.js';
 
-function readVersion(): string {
-  const pkg: unknown = JSON.parse(
-    readFileSync(new URL('../../package.json', import.meta.url), 'utf8')
-  );
-  if (
-    typeof pkg === 'object' &&
-    pkg !== null &&
-    'version' in pkg &&
-    typeof pkg.version === 'string'
-  ) {
-    return pkg.version;
-  }
-  return 'unknown';
-}
-
-const version = readVersion();
+const HealthSchema = z
+  .object({
+    status: z.string().describe('Always "ok" while the process can answer'),
+    version: z.string(),
+    uptime: z.number().describe('Seconds since the API process started'),
+  })
+  .meta({ id: 'Health' });
 
 export function registerHealthRoutes(app: FastifyInstance): void {
-  app.get('/health', () => ({
-    status: 'ok',
-    version,
-    uptime: process.uptime(),
-  }));
+  app.withTypeProvider<ZodTypeProvider>().get(
+    '/health',
+    {
+      schema: {
+        tags: ['health'],
+        summary: 'Liveness check for Docker and monitoring',
+        response: { [OK]: HealthSchema },
+      },
+    },
+    () => ({
+      status: 'ok',
+      version: API_VERSION,
+      uptime: process.uptime(),
+    })
+  );
 }

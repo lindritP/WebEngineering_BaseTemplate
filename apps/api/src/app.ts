@@ -1,5 +1,9 @@
 import fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from 'fastify-type-provider-zod';
 import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
@@ -17,6 +21,11 @@ export async function buildApp(): Promise<FastifyInstance> {
     logger: true,
     genReqId: generateRequestId,
   });
+
+  // Route schemas are zod schemas: they validate requests and responses and
+  // are the source of the OpenAPI document.
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
 
   const commentStore = new InMemoryCommentStore();
 

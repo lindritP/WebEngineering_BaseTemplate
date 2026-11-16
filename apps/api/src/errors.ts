@@ -1,5 +1,3 @@
-import type { z } from 'zod';
-
 // Every error the API throws on purpose extends HttpError. The central error
 // handler (problemDetails.ts) turns it into RFC 9457 Problem Details.
 // `message` is for the server log, `detail` is what the client may see.
@@ -24,17 +22,10 @@ export class NotFoundError extends HttpError {
 }
 
 // One entry per invalid field. `pointer` is a JSON Pointer into the request
-// body ("#/author"), the format RFC 9457 uses in its own example.
+// ("#/author"), the format RFC 9457 uses in its own example.
 export interface FieldError {
   pointer: string;
   detail: string;
-}
-
-function toJsonPointer(path: PropertyKey[]): string {
-  const segments = path.map((segment) =>
-    String(segment).replaceAll('~', '~0').replaceAll('/', '~1')
-  );
-  return ['#', ...segments].join('/');
 }
 
 export class ValidationError extends HttpError {
@@ -49,14 +40,6 @@ export class ValidationError extends HttpError {
     );
     super(`Please check these fields: ${fields.join(', ')}`, options);
     this.errors = errors;
-  }
-
-  static fromZod(error: z.ZodError): ValidationError {
-    const errors = error.issues.map(({ path, message }) => ({
-      pointer: toJsonPointer(path),
-      detail: message,
-    }));
-    return new ValidationError(errors, { cause: error });
   }
 }
 

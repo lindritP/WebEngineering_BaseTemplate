@@ -1,7 +1,8 @@
 import { STATUS_CODES } from 'node:http';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { hasZodFastifySchemaValidationErrors } from 'fastify-type-provider-zod';
+import { z } from 'zod';
 import { HttpError, NotFoundError, ValidationError } from './errors.js';
-import type { FieldError } from './errors.js';
 
 export const PROBLEM_CONTENT_TYPE = 'application/problem+json';
 
@@ -9,13 +10,37 @@ const CLIENT_ERROR_MIN = 400;
 const SERVER_ERROR_MIN = 500;
 
 // RFC 9457. `errors` is an extension member, only sent for validation errors.
-export interface Problem {
-  type: string;
-  title: string;
-  status: number;
-  detail: string;
-  instance: string;
-  errors?: FieldError[];
+// The id makes it one shared "Problem" component in the OpenAPI document.
+export const ProblemSchema = z
+  .object({
+    type: z.string().describe('URI reference that identifies the problem type'),
+    title: z.string().describe('Short summary of the problem type'),
+    status: z.int().describe('HTTP status code'),
+    detail: z.string().describe('Explanation of this occurrence, for humans'),
+    instance: z.string().describe('urn:uuid: plus the request id'),
+    errors: z
+      .array(z.object({ pointer: z.string(), detail: z.string() }))
+      .optional()
+      .describe('Invalid fields (validation errors only)'),
+  })
+  .meta({ id: 'Problem', description: 'RFC 9457 Problem Details' });
+
+export type Problem = z.infer<typeof ProblemSchema>;
+
+// Documents the error responses of a route. Every route can also fail with
+// an unexpected 500, so that one is always included.
+export function problemResponses(
+  statuses: number[]
+): Record<number, { description: string; content: object }> {
+  return Object.fromEntries(
+    [...statuses, SERVER_ERROR_MIN].map((status) => [
+      status,
+      {
+        description: STATUS_CODES[status] ?? 'Error',
+        content: { [PROBLEM_CONTENT_TYPE]: { schema: ProblemSchema } },
+      },
+    ])
+  );
 }
 
 // Fastify's own client errors (invalid JSON, unsupported content type, body
@@ -30,6 +55,20 @@ function isFastifyClientError(
     error.statusCode >= CLIENT_ERROR_MIN &&
     error.statusCode < SERVER_ERROR_MIN
   );
+}
+
+// A request that fails a route's zod schema arrives here as Fastify's
+// validation error. It becomes our ValidationError, so the client gets the
+// same 400 with an `errors` array as for any other invalid input.
+function normalize(error: unknown): unknown {
+  if (!hasZodFastifySchemaValidationErrors(error)) {
+    return error;
+  }
+  const errors = error.validation.map(({ instancePath, message }) => ({
+    pointer: instancePath === '/' ? '#' : `#${instancePath}`,
+    detail: message ?? 'Invalid value',
+  }));
+  return new ValidationError(errors, { cause: error });
 }
 
 function toProblem(error: unknown, request: FastifyRequest): Problem {
@@ -69,7 +108,8 @@ function toProblem(error: unknown, request: FastifyRequest): Problem {
 }
 
 export function registerProblemDetails(app: FastifyInstance): void {
-  app.setErrorHandler((error, request, reply) => {
+  app.setErrorHandler((rawError, request, reply) => {
+    const error = normalize(rawError);
     const problem = toProblem(error, request);
 
     // request.log adds the request id to the log line automatically.
