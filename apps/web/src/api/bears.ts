@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type Bear from '../types.ts';
 import { toApiError } from './problem.ts';
+import { apiUrl } from './url.ts';
 
 // The API already validates its output, but the browser cannot know that:
 // a different API version or a proxy error page would be just as unknown.
@@ -16,7 +17,7 @@ const BearSchema: z.ZodType<Bear> = z.object({
 const BearListSchema = z.array(BearSchema);
 
 export async function fetchBears(signal: AbortSignal): Promise<Bear[]> {
-  const res = await fetch('/api/bears', { signal });
+  const res = await fetch(apiUrl('/api/bears'), { signal });
   if (!res.ok) {
     throw await toApiError(res);
   }

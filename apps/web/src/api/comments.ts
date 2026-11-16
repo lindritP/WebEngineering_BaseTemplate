@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Comment, NewComment } from '../types.ts';
 import { toApiError } from './problem.ts';
+import { apiUrl } from './url.ts';
 
 const NOT_FOUND = 404;
 
@@ -15,7 +16,7 @@ const CommentSchema: z.ZodType<Comment> = z.object({
 const CommentListSchema = z.array(CommentSchema);
 
 function commentsUrl(bearId: string): string {
-  return `/api/bears/${encodeURIComponent(bearId)}/comments`;
+  return apiUrl(`/api/bears/${encodeURIComponent(bearId)}/comments`);
 }
 
 async function parseResponse<T>(
@@ -55,9 +56,12 @@ export async function createComment(
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
-  const res = await fetch(`/api/comments/${encodeURIComponent(commentId)}`, {
-    method: 'DELETE',
-  });
+  const res = await fetch(
+    apiUrl(`/api/comments/${encodeURIComponent(commentId)}`),
+    {
+      method: 'DELETE',
+    }
+  );
   // DELETE is idempotent: a 404 means the comment is already gone (for
   // example deleted in another tab), which is the state the user wanted.
   if (!res.ok && res.status !== NOT_FOUND) {
