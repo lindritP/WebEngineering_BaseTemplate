@@ -7,6 +7,7 @@ import {
 import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
+import { registerOpenApi } from './openapi.js';
 import { registerProblemDetails } from './problemDetails.js';
 import { generateRequestId, registerRequestIdHeader } from './requestId.js';
 import { registerBearRoutes } from './routes/bears.js';
@@ -34,6 +35,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await registerCors(app);
   registerRequestIdHeader(app);
   registerProblemDetails(app);
+  await registerOpenApi(app);
 
   registerHealthRoutes(app);
   registerBearRoutes(app);
