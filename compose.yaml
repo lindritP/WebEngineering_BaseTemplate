@@ -1,4 +1,24 @@
 services:
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      # Macht die DB lokal (z. B. für DBeaver/pgAdmin) erreichbar
+      - 127.0.0.1:5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
   api:
     build:
       context: .
@@ -8,6 +28,10 @@ services:
       WIKIPEDIA_API_URL: ${WIKIPEDIA_API_URL:-https://en.wikipedia.org/w/api.php}
       ENABLE_DEBUG_ROUTES: ${ENABLE_DEBUG_ROUTES:-false}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
     healthcheck:
@@ -26,3 +50,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+volumes:
+  postgres_data:
