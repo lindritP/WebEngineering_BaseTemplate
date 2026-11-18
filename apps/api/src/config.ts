@@ -5,6 +5,7 @@ const MIN_PORT = 1;
 const MAX_PORT = 65_535;
 const DEFAULT_WIKIPEDIA_API_URL = 'https://en.wikipedia.org/w/api.php';
 const DEFAULT_UPSTREAM_TIMEOUT_MS = 5000;
+const DEFAULT_POOL_MAX = 10;
 const FAILURE_EXIT_CODE = 1;
 
 // process.env only ever holds strings (or nothing), so every variable is
@@ -37,6 +38,9 @@ const EnvSchema = z
       .default(DEFAULT_PORT),
     // Required, no default: the API is useless without its database.
     DATABASE_URL: z.url({ protocol: /^postgres(?:ql)?$/v }),
+    // Hard cap of connections this process may hold open. Keep
+    // instances * DB_POOL_MAX below Postgres' max_connections (default 100).
+    DB_POOL_MAX: z.coerce.number().int().positive().default(DEFAULT_POOL_MAX),
     WIKIPEDIA_API_URL: z.url().default(DEFAULT_WIKIPEDIA_API_URL),
     UPSTREAM_TIMEOUT_MS: z.coerce
       .number()
@@ -52,6 +56,7 @@ const EnvSchema = z
   .transform((env) => ({
     port: env.PORT,
     databaseUrl: env.DATABASE_URL,
+    dbPoolMax: env.DB_POOL_MAX,
     wikipediaApiUrl: env.WIKIPEDIA_API_URL,
     upstreamTimeoutMs: env.UPSTREAM_TIMEOUT_MS,
     enableDebugRoutes: env.ENABLE_DEBUG_ROUTES,
