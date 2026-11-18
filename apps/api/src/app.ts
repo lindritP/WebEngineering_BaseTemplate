@@ -7,6 +7,7 @@ import {
 import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
+import { createPool } from './db/pool.js';
 import { registerOpenApi } from './openapi.js';
 import { registerProblemDetails } from './problemDetails.js';
 import { generateRequestId, registerRequestIdHeader } from './requestId.js';
@@ -30,6 +31,13 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   const commentStore = new InMemoryCommentStore();
 
+  // One pool for the whole process. app.close() (SIGTERM, tests) runs onClose
+  // hooks: end() waits for running queries, then closes every connection.
+  const pool = createPool(app.log);
+  app.addHook('onClose', async () => {
+    await pool.end();
+  });
+
   // Before the routes, so they all share the request id, CORS headers and
   // the error format.
   await registerCors(app);
@@ -37,7 +45,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerProblemDetails(app);
   await registerOpenApi(app);
 
-  registerHealthRoutes(app);
+  registerHealthRoutes(app, pool);
   registerBearRoutes(app);
   registerCommentRoutes(app, commentStore);
   if (config.enableDebugRoutes) {

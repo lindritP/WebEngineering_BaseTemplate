@@ -61,3 +61,16 @@ export class UpstreamTimeoutError extends HttpError {
   readonly title = 'Upstream service timed out';
   override readonly detail = UPSTREAM_DETAIL;
 }
+
+// The API itself is fine, but something it needs (the database) is not. The
+// driver's message ("connect ECONNREFUSED 172.19.0.2:5432") only goes to the
+// log, the client gets one fixed sentence.
+const UNAVAILABLE_DETAIL =
+  'The service is not ready to handle requests. Please try again later.';
+
+export class ServiceUnavailableError extends HttpError {
+  readonly statusCode = 503;
+  readonly type = '/problems/service-unavailable';
+  readonly title = 'Service unavailable';
+  override readonly detail = UNAVAILABLE_DETAIL;
+}
