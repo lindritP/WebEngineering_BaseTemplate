@@ -152,3 +152,79 @@ Filter: 87500`) and sorts what is left, for every page.
   to the position. `OFFSET 5000` still walks 5,000 entries and throws them
   away, so it gets slower the deeper the page is; the cursor page costs the
   same everywhere.
+
+## Task 5: transactions and the lost update
+
+### The feature
+
+`POST /api/comments/:commentId/report` adds one to `comments.report_count`
+and returns the comment. The third report sets `hidden_at`; hidden comments
+are no longer listed (but can still be found by id and reported again, the
+count keeps going). Migration: `0002_comment_reports.sql`.
+
+### The race, reproduced
+
+`ReportService.reportNaively` reads the comment, adds one in TypeScript and
+writes the result back:
+
+```text
+request A: SELECT report_count  -> 7
+request B: SELECT report_count  -> 7      (A has not written yet)
+request A: UPDATE ... SET report_count = 8
+request B: UPDATE ... SET report_count = 8   (one report is lost)
+```
+
+`npm run demo:lost-update -w @bears/api` sends 50 concurrent reports for one
+comment (pool of 10 connections), three times per version:
+
+```text
+50 concurrent reports for one comment, pool of 10 connections
+
+naive (read, +1 in TypeScript, write), run 1: report_count = 1  (expected 50)
+naive (read, +1 in TypeScript, write), run 2: report_count = 1  (expected 50)
+naive (read, +1 in TypeScript, write), run 3: report_count = 1  (expected 50)
+transaction + FOR UPDATE, run 1:                report_count = 50  (expected 50)
+transaction + FOR UPDATE, run 2:                report_count = 50  (expected 50)
+transaction + FOR UPDATE, run 3:                report_count = 50  (expected 50)
+```
+
+The naive result is 1, not "somewhere below 50": all 50 `SELECT`s are queued
+in the pool before the first `UPDATE` is, so every request read 0 and wrote
+
+1. With fewer requests or a slower network the result varies between 1 and
+   50; it is never reliably 50.
+
+### The fix
+
+`ReportService.report` runs the read and the write as ONE transaction and the
+read locks the row:
+
+```ts
+await this.transactions.run(async ({ comments }) => {
+  const current = await comments.findByIdForUpdate(commentId); // SELECT ... FOR UPDATE
+  if (current === undefined) return undefined;
+  return await comments.saveReportState(
+    commentId,
+    nextReportState(current, new Date())
+  );
+});
+```
+
+A second report for the same comment waits at its `SELECT ... FOR UPDATE` until
+the first transaction has committed, then reads the NEW count. Reports for
+other comments do not wait. Checked over HTTP as well: 50 parallel
+`curl -X POST .../report` ended with `report_count = 50` and `hidden_at` set.
+
+Where the boundary lives: **in the service**. `TransactionRunner.run()` (see
+`src/transactions.ts`) opens the transaction and hands the work repositories
+that are bound to its connection. The repository methods (`findByIdForUpdate`,
+`saveReportState`) are plain reads and writes; only the service knows that
+they belong together. Tests use `InMemoryTransactionRunner`, which runs
+transactions one after another; the unit tests reproduce the same race
+(`reportService.test.ts`: naive < 50, transactional = 50) without a database.
+
+The alternative that needs no explicit transaction is one atomic statement,
+`UPDATE comments SET report_count = report_count + 1 ... RETURNING *`: the
+database does read and write in a single step. It cannot express "decide
+based on the value I read" for more complex rules, which is why the row lock
+was chosen here (the hide-at-three rule reads the count and `hidden_at`).
