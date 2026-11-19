@@ -1,6 +1,26 @@
 import { randomUUID } from 'node:crypto';
 import type { Comment, CreateComment } from './comment.js';
-import type { CommentRepository } from './commentRepository.js';
+import type {
+  CommentPage,
+  CommentRepository,
+  PageRequest,
+} from './commentRepository.js';
+
+const FROM_START = 0;
+const LAST = -1;
+const SAME = 0;
+
+// Newest first; id breaks ties. Negative: a sorts before b.
+function compareNewestFirst(
+  a: { createdAt: string; id: string },
+  b: { createdAt: string; id: string }
+): number {
+  const byTime = Date.parse(b.createdAt) - Date.parse(a.createdAt);
+  if (byTime !== SAME) {
+    return byTime;
+  }
+  return b.id.localeCompare(a.id);
+}
 
 // For tests: the same contract as the database version, without a database.
 export class InMemoryCommentRepository implements CommentRepository {
@@ -15,6 +35,32 @@ export class InMemoryCommentRepository implements CommentRepository {
     return await Promise.resolve(
       [...this.comments.values()].filter((comment) => comment.bearId === bearId)
     );
+  }
+
+  async pageByBear(
+    bearId: string,
+    { limit, after }: PageRequest
+  ): Promise<CommentPage> {
+    const newestFirst = [...this.comments.values()]
+      .filter((comment) => comment.bearId === bearId)
+      .sort((a, b) => compareNewestFirst(a, b));
+    // Everything that sorts after the cursor position.
+    const rest =
+      after === undefined
+        ? newestFirst
+        : newestFirst.filter(
+            (comment) => compareNewestFirst(comment, after) > SAME
+          );
+    const items = rest.slice(FROM_START, limit);
+    const [lastItem] = items.slice(LAST);
+    const hasMore = rest.length > limit;
+    return await Promise.resolve({
+      items,
+      nextCursor:
+        hasMore && lastItem !== undefined
+          ? { createdAt: lastItem.createdAt, id: lastItem.id }
+          : undefined,
+    });
   }
 
   async listByBears(

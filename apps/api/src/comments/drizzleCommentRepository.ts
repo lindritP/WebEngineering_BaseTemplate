@@ -1,9 +1,17 @@
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { comments } from '../db/schema.js';
 import type { CommentRow } from '../db/schema.js';
 import type { Comment, CreateComment } from './comment.js';
-import type { CommentRepository } from './commentRepository.js';
+import type {
+  CommentPage,
+  CommentRepository,
+  PageRequest,
+} from './commentRepository.js';
+
+const ONE_MORE = 1;
+const FROM_START = 0;
+const LAST = -1;
 
 // The database stores a timestamp, the API contract is an ISO string.
 function toComment(row: CommentRow): Comment {
@@ -16,6 +24,11 @@ function toComment(row: CommentRow): Comment {
   };
 }
 
+// created_at with the full microseconds PostgreSQL stores, as an ISO string.
+// Reading the column as a JavaScript Date would cut it to milliseconds, and a
+// cursor built from that would skip rows that share the millisecond.
+const createdAtExact = sql<string>`to_char(${comments.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+
 export class DrizzleCommentRepository implements CommentRepository {
   constructor(private readonly db: Database) {}
 
@@ -27,6 +40,42 @@ export class DrizzleCommentRepository implements CommentRepository {
       // id breaks ties between comments created in the same instant.
       .orderBy(asc(comments.createdAt), asc(comments.id));
     return rows.map(toComment);
+  }
+
+  // Keyset pagination: "the rows after this position" is a condition on the
+  // sort key, so with an index on (bear_id, created_at, id) PostgreSQL jumps
+  // straight to that position. OFFSET would read and throw away every row
+  // before it.
+  async pageByBear(
+    bearId: string,
+    { limit, after }: PageRequest
+  ): Promise<CommentPage> {
+    const rows = await this.db
+      .select({ ...getTableColumns(comments), cursorCreatedAt: createdAtExact })
+      .from(comments)
+      .where(
+        and(
+          eq(comments.bearId, bearId),
+          // A row comparison: (created_at, id) < (x, y) means "created earlier,
+          // or at the same instant with a smaller id".
+          after === undefined
+            ? undefined
+            : sql`(${comments.createdAt}, ${comments.id}) < (${after.createdAt}::timestamptz, ${after.id}::uuid)`
+        )
+      )
+      .orderBy(desc(comments.createdAt), desc(comments.id))
+      // One more than asked for: its existence is the "has a next page" answer.
+      .limit(limit + ONE_MORE);
+
+    const pageRows = rows.slice(FROM_START, limit);
+    const last = pageRows.at(LAST);
+    return {
+      items: pageRows.map(toComment),
+      nextCursor:
+        rows.length > limit && last !== undefined
+          ? { createdAt: last.cursorCreatedAt, id: last.id }
+          : undefined,
+    };
   }
 
   // One query with IN (...) instead of one query per bear (N+1).
