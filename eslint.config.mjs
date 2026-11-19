@@ -35,7 +35,7 @@ export default defineConfig(
     // Tests: describe()/it() return promises that node:test awaits itself, a
     // shared `let app` is assigned in before(), and assertions compare against
     // literal expected values (status codes, counts).
-    files: ['apps/*/src/**/*.test.ts'],
+    files: ['apps/*/src/**/*.{test,contract}.ts'],
     rules: {
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/init-declarations': 'off',
