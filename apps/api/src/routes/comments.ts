@@ -1,15 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { findBear } from '../bears/findBear.js';
+import { findBear } from '../bears/bearQueries.js';
 import { CommentSchema, CreateCommentSchema } from '../comments/comment.js';
 import type { InMemoryCommentStore } from '../comments/commentStore.js';
+import type { Database } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
 import {
-  BAD_GATEWAY,
   BAD_REQUEST,
   CREATED,
-  GATEWAY_TIMEOUT,
   NO_CONTENT,
   NOT_FOUND,
   OK,
@@ -21,7 +20,8 @@ const CommentParamsSchema = z.object({ commentId: z.string() });
 
 export function registerCommentRoutes(
   app: FastifyInstance,
-  store: InMemoryCommentStore
+  store: InMemoryCommentStore,
+  db: Database
 ): void {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
@@ -34,18 +34,18 @@ export function registerCommentRoutes(
         params: BearParamsSchema,
         response: {
           [OK]: z.array(CommentSchema),
-          ...problemResponses([NOT_FOUND, BAD_GATEWAY, GATEWAY_TIMEOUT]),
+          ...problemResponses([NOT_FOUND]),
         },
       },
     },
     async ({ params: { id } }) => {
-      await findBear(id);
+      await findBear(db, id);
       return store.list(id);
     }
   );
 
   // The body is validated by the schema before the handler runs: an invalid
-  // body is a 400 without a call to Wikipedia.
+  // body is a 400 without a database lookup.
   api.post(
     '/api/bears/:id/comments',
     {
@@ -58,17 +58,12 @@ export function registerCommentRoutes(
           [CREATED]: CommentSchema.describe(
             'The new comment; its URL is in the Location header'
           ),
-          ...problemResponses([
-            BAD_REQUEST,
-            NOT_FOUND,
-            BAD_GATEWAY,
-            GATEWAY_TIMEOUT,
-          ]),
+          ...problemResponses([BAD_REQUEST, NOT_FOUND]),
         },
       },
     },
     async ({ params: { id }, body }, reply) => {
-      await findBear(id);
+      await findBear(db, id);
       const comment = store.add(id, body);
       void reply
         .code(CREATED)

@@ -2,15 +2,16 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { BearListSchema, BearSchema } from '../bears/bear.js';
-import { findBear, loadBears } from '../bears/findBear.js';
-import { BAD_GATEWAY, GATEWAY_TIMEOUT, NOT_FOUND, OK } from '../httpStatus.js';
+import { findBear, listBears } from '../bears/bearQueries.js';
+import type { Database } from '../db/client.js';
+import { NOT_FOUND, OK } from '../httpStatus.js';
 import { problemResponses } from '../problemDetails.js';
 
 export const BearParamsSchema = z.object({
   id: z.string().describe('Slug of the binomial name, e.g. "u-arctos"'),
 });
 
-export function registerBearRoutes(app: FastifyInstance): void {
+export function registerBearRoutes(app: FastifyInstance, db: Database): void {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
   api.get(
@@ -21,11 +22,11 @@ export function registerBearRoutes(app: FastifyInstance): void {
         summary: 'List all bear species',
         response: {
           [OK]: BearListSchema,
-          ...problemResponses([BAD_GATEWAY, GATEWAY_TIMEOUT]),
+          ...problemResponses([]),
         },
       },
     },
-    async () => await loadBears()
+    async () => await listBears(db)
   );
 
   api.get(
@@ -37,10 +38,10 @@ export function registerBearRoutes(app: FastifyInstance): void {
         params: BearParamsSchema,
         response: {
           [OK]: BearSchema,
-          ...problemResponses([NOT_FOUND, BAD_GATEWAY, GATEWAY_TIMEOUT]),
+          ...problemResponses([NOT_FOUND]),
         },
       },
     },
-    async ({ params: { id } }) => await findBear(id)
+    async ({ params: { id } }) => await findBear(db, id)
   );
 }

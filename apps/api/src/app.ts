@@ -7,6 +7,7 @@ import {
 import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
+import { createDatabase } from './db/client.js';
 import { createPool } from './db/pool.js';
 import { registerOpenApi } from './openapi.js';
 import { registerProblemDetails } from './problemDetails.js';
@@ -38,6 +39,8 @@ export async function buildApp(): Promise<FastifyInstance> {
     await pool.end();
   });
 
+  const db = createDatabase(pool);
+
   // Before the routes, so they all share the request id, CORS headers and
   // the error format.
   await registerCors(app);
@@ -46,8 +49,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await registerOpenApi(app);
 
   registerHealthRoutes(app, pool);
-  registerBearRoutes(app);
-  registerCommentRoutes(app, commentStore);
+  registerBearRoutes(app, db);
+  registerCommentRoutes(app, commentStore, db);
   if (config.enableDebugRoutes) {
     registerDebugRoutes(app);
   }
