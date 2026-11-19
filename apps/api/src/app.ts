@@ -7,6 +7,7 @@ import {
 import { config } from './config.js';
 import { registerCors } from './cors.js';
 import { createDatabaseDependencies } from './db/databaseDependencies.js';
+import { ReportService } from './comments/reportService.js';
 import type { AppDependencies } from './dependencies.js';
 import { registerOpenApi } from './openapi.js';
 import { registerProblemDetails } from './problemDetails.js';
@@ -53,7 +54,12 @@ export async function buildApp(
 
   registerHealthRoutes(app, deps.checkReady);
   registerBearRoutes(app, deps.bears);
-  registerCommentRoutes(app, deps.comments, deps.bears);
+  registerCommentRoutes(
+    app,
+    deps.comments,
+    deps.bears,
+    new ReportService(deps.comments, deps.transactions)
+  );
   if (config.enableDebugRoutes) {
     registerDebugRoutes(app);
   }

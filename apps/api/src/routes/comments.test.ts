@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { buildTestApp } from '../test/testApp.js';
@@ -8,6 +9,11 @@ interface CommentBody {
   bearId: string;
   author: string;
   text: string;
+}
+
+interface ReportBody {
+  reportCount: number;
+  hiddenAt: string | null;
 }
 
 interface PageBody {
@@ -155,6 +161,45 @@ describe('comment routes', () => {
 
     assert.equal(first.statusCode, 204);
     assert.equal(second.statusCode, 404);
+  });
+
+  it('hides a comment at the third report and stops listing it', async () => {
+    const created = res(await post('u-arctos', { author: 'A', text: 'rude' }));
+    await post('u-arctos', { author: 'B', text: 'fine' });
+    const report = async (): Promise<LightMyRequestResponse> =>
+      await app.inject({
+        method: 'POST',
+        url: `/api/comments/${created.id}/report`,
+      });
+
+    const first = await report();
+    await report();
+    const third = await report();
+
+    assert.equal(first.statusCode, 200);
+    assert.equal(first.json<ReportBody>().reportCount, 1);
+    assert.equal(first.json<ReportBody>().hiddenAt, null);
+    assert.equal(third.json<ReportBody>().reportCount, 3);
+    assert.notEqual(third.json<ReportBody>().hiddenAt, null);
+    const list = (await getPage('')).json<PageBody>();
+    assert.deepEqual(
+      list.items.map((comment) => comment.text),
+      ['fine']
+    );
+  });
+
+  it('answers 404 when reporting an unknown comment and 400 for a bad id', async () => {
+    const unknown = await app.inject({
+      method: 'POST',
+      url: `/api/comments/${randomUUID()}/report`,
+    });
+    const bad = await app.inject({
+      method: 'POST',
+      url: '/api/comments/not-a-uuid/report',
+    });
+
+    assert.equal(unknown.statusCode, 404);
+    assert.equal(bad.statusCode, 400);
   });
 
   it('answers 400 for a comment id that is not a uuid', async () => {

@@ -9,6 +9,7 @@ import {
   CreateCommentSchema,
 } from '../comments/comment.js';
 import type { CommentRepository } from '../comments/commentRepository.js';
+import type { ReportService } from '../comments/reportService.js';
 import { decodeCursor, encodeCursor } from '../comments/cursor.js';
 import { NotFoundError } from '../errors.js';
 import {
@@ -55,7 +56,8 @@ const CommentPageQuerySchema = z.object({
 export function registerCommentRoutes(
   app: FastifyInstance,
   comments: CommentRepository,
-  bears: BearRepository
+  bears: BearRepository,
+  reports: ReportService
 ): void {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
@@ -113,6 +115,31 @@ export function registerCommentRoutes(
         .code(CREATED)
         .header('Location', `/api/comments/${comment.id}`);
       return comment;
+    }
+  );
+
+  // POST, not PUT: every call changes the state (count + 1), so repeating a
+  // request is NOT harmless. The service makes concurrent calls count
+  // correctly (a transaction with a row lock).
+  api.post(
+    '/api/comments/:commentId/report',
+    {
+      schema: {
+        tags: ['comments'],
+        summary: 'Report a comment; it is hidden after 3 reports',
+        params: CommentParamsSchema,
+        response: {
+          [OK]: CommentSchema.describe('The comment with its new report state'),
+          ...problemResponses([BAD_REQUEST, NOT_FOUND]),
+        },
+      },
+    },
+    async ({ params: { commentId } }) => {
+      const reported = await reports.report(commentId);
+      if (reported === undefined) {
+        throw new NotFoundError(`No comment with id "${commentId}"`);
+      }
+      return reported;
     }
   );
 
