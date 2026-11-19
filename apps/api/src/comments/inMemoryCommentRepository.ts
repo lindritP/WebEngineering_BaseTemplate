@@ -8,6 +8,7 @@ import type {
 
 const FROM_START = 0;
 const ONE_MS = 1;
+const NO_REPORTS = 0;
 const EPOCH = 0;
 const LAST = -1;
 const SAME = 0;
@@ -39,7 +40,7 @@ export class InMemoryCommentRepository implements CommentRepository {
   // have the same signature as the database version.
   async listByBear(bearId: string): Promise<Comment[]> {
     return await Promise.resolve(
-      [...this.comments.values()].filter((comment) => comment.bearId === bearId)
+      this.visible().filter((comment) => comment.bearId === bearId)
     );
   }
 
@@ -47,7 +48,7 @@ export class InMemoryCommentRepository implements CommentRepository {
     bearId: string,
     { limit, after }: PageRequest
   ): Promise<CommentPage> {
-    const newestFirst = [...this.comments.values()]
+    const newestFirst = this.visible()
       .filter((comment) => comment.bearId === bearId)
       .sort((a, b) => compareNewestFirst(a, b));
     // Everything that sorts after the cursor position.
@@ -75,7 +76,7 @@ export class InMemoryCommentRepository implements CommentRepository {
     const result = new Map<string, Comment[]>(
       bearIds.map((bearId) => [bearId, []])
     );
-    for (const comment of this.comments.values()) {
+    for (const comment of this.visible()) {
       result.get(comment.bearId)?.push(comment);
     }
     return await Promise.resolve(result);
@@ -88,9 +89,18 @@ export class InMemoryCommentRepository implements CommentRepository {
       author: input.author,
       text: input.text,
       createdAt: this.nextTimestamp(),
+      reportCount: NO_REPORTS,
+      hiddenAt: null,
     };
     this.comments.set(comment.id, comment);
     return await Promise.resolve(comment);
+  }
+
+  // Comments hidden after too many reports are not listed.
+  private visible(): Comment[] {
+    return [...this.comments.values()].filter(
+      (comment) => comment.hiddenAt === null
+    );
   }
 
   private nextTimestamp(): string {

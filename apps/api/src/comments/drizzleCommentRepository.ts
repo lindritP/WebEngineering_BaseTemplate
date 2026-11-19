@@ -1,4 +1,13 @@
-import { and, asc, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  sql,
+} from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { comments } from '../db/schema.js';
 import type { CommentRow } from '../db/schema.js';
@@ -13,7 +22,7 @@ const ONE_MORE = 1;
 const FROM_START = 0;
 const LAST = -1;
 
-// The database stores a timestamp, the API contract is an ISO string.
+// The database stores timestamps, the API contract is ISO strings.
 function toComment(row: CommentRow): Comment {
   return {
     id: row.id,
@@ -21,6 +30,8 @@ function toComment(row: CommentRow): Comment {
     author: row.author,
     text: row.text,
     createdAt: row.createdAt.toISOString(),
+    reportCount: row.reportCount,
+    hiddenAt: row.hiddenAt?.toISOString() ?? null,
   };
 }
 
@@ -36,7 +47,7 @@ export class DrizzleCommentRepository implements CommentRepository {
     const rows = await this.db
       .select()
       .from(comments)
-      .where(eq(comments.bearId, bearId))
+      .where(and(eq(comments.bearId, bearId), isNull(comments.hiddenAt)))
       // id breaks ties between comments created in the same instant.
       .orderBy(asc(comments.createdAt), asc(comments.id));
     return rows.map(toComment);
@@ -56,6 +67,8 @@ export class DrizzleCommentRepository implements CommentRepository {
       .where(
         and(
           eq(comments.bearId, bearId),
+          // Reported-away comments are not part of the list.
+          isNull(comments.hiddenAt),
           // A row comparison: (created_at, id) < (x, y) means "created earlier,
           // or at the same instant with a smaller id".
           after === undefined
@@ -93,7 +106,9 @@ export class DrizzleCommentRepository implements CommentRepository {
     const rows = await this.db
       .select()
       .from(comments)
-      .where(inArray(comments.bearId, [...bearIds]))
+      .where(
+        and(inArray(comments.bearId, [...bearIds]), isNull(comments.hiddenAt))
+      )
       .orderBy(asc(comments.createdAt), asc(comments.id));
     for (const row of rows) {
       result.get(row.bearId)?.push(toComment(row));

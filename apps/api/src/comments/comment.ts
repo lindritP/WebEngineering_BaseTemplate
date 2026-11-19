@@ -17,6 +17,11 @@ export const CommentSchema = CreateCommentSchema.extend({
   id: z.uuid(),
   bearId: z.string(),
   createdAt: z.iso.datetime(),
+  reportCount: z.int().nonnegative().describe('How often readers reported it'),
+  hiddenAt: z.iso
+    .datetime()
+    .nullable()
+    .describe('When it was hidden after too many reports; null = visible'),
 }).meta({ id: 'Comment' });
 
 export type CreateComment = z.infer<typeof CreateCommentSchema>;
