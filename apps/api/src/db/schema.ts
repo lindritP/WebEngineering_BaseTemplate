@@ -1,4 +1,13 @@
-import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+const NO_REPORTS = 0;
 
 // The slug is the natural key: the bears come from Wikipedia and their slug
 // (from the binomial name) is stable and already used in every URL.
@@ -33,6 +42,11 @@ export const comments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
+    // How often readers reported the comment. Written by the report feature
+    // only; see ReportService for how concurrent reports are kept correct.
+    reportCount: integer('report_count').notNull().default(NO_REPORTS),
+    // Set when the comment reached the report threshold; null = visible.
+    hiddenAt: timestamp('hidden_at', { withTimezone: true }),
   },
   (table) => [
     // Serves "the comments of one bear, newest first, after this position":
