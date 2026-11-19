@@ -223,8 +223,19 @@ they belong together. Tests use `InMemoryTransactionRunner`, which runs
 transactions one after another; the unit tests reproduce the same race
 (`reportService.test.ts`: naive < 50, transactional = 50) without a database.
 
-The alternative that needs no explicit transaction is one atomic statement,
-`UPDATE comments SET report_count = report_count + 1 ... RETURNING *`: the
-database does read and write in a single step. It cannot express "decide
-based on the value I read" for more complex rules, which is why the row lock
-was chosen here (the hide-at-three rule reads the count and `hidden_at`).
+The alternative that needs no explicit transaction is one atomic statement:
+
+```sql
+UPDATE comments
+SET report_count = report_count + 1,
+    hidden_at = CASE WHEN report_count + 1 >= 3 THEN coalesce(hidden_at, now()) ELSE hidden_at END
+WHERE id = $1
+RETURNING *;
+```
+
+The database reads and writes in a single step, so there is nothing to
+interleave. It would work here too. I chose the row lock because the rule
+stays readable in TypeScript (`nextReportState`, unit-testable without SQL)
+and because it shows where a transaction boundary belongs. The price: two
+round trips and a lock held for their duration, where the atomic statement
+needs one round trip.
