@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Comment, NewComment } from '../types.ts';
+import type { Comment, CommentPage, NewComment } from '../types.ts';
 import { toApiError } from './problem.ts';
 import { apiUrl } from './url.ts';
 
@@ -13,7 +13,10 @@ const CommentSchema: z.ZodType<Comment> = z.object({
   createdAt: z.string(),
 });
 
-const CommentListSchema = z.array(CommentSchema);
+const CommentPageSchema: z.ZodType<CommentPage> = z.object({
+  items: z.array(CommentSchema),
+  nextCursor: z.string().nullable(),
+});
 
 function commentsUrl(bearId: string): string {
   return apiUrl(`/api/bears/${encodeURIComponent(bearId)}/comments`);
@@ -35,12 +38,17 @@ async function parseResponse<T>(
   return result.data;
 }
 
+// One page, newest first. Without a cursor it is the first page; with the
+// nextCursor of the previous page it continues right after that page.
 export async function fetchComments(
   bearId: string,
-  signal: AbortSignal
-): Promise<Comment[]> {
-  const res = await fetch(commentsUrl(bearId), { signal });
-  return await parseResponse(res, CommentListSchema);
+  signal: AbortSignal,
+  cursor?: string
+): Promise<CommentPage> {
+  const query =
+    cursor === undefined ? '' : `?cursor=${encodeURIComponent(cursor)}`;
+  const res = await fetch(`${commentsUrl(bearId)}${query}`, { signal });
+  return await parseResponse(res, CommentPageSchema);
 }
 
 export async function createComment(

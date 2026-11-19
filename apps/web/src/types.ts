@@ -21,9 +21,15 @@ export interface NewComment {
   text: string;
 }
 
+// One page of comments. nextCursor is null when there is nothing more to load.
+export interface CommentPage {
+  items: Comment[];
+  nextCursor: string | null;
+}
+
 export type CommentsState =
   | { status: 'loading' }
-  | { status: 'success'; comments: Comment[] }
+  | { status: 'success'; comments: Comment[]; nextCursor: string | null }
   | { status: 'error'; message: string };
 
 export interface BearType {

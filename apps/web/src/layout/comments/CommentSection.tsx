@@ -16,7 +16,7 @@ interface CommentSectionProps {
 export default function CommentSection({
   bearId,
 }: CommentSectionProps): ReactElement {
-  const { state, addComment, removeComment } = useComments(bearId);
+  const { state, addComment, removeComment, loadMore } = useComments(bearId);
 
   return (
     <div className="comment-wrapper">
@@ -24,7 +24,11 @@ export default function CommentSection({
       <CommentForm onSubmit={addComment} />
 
       <h4>Posted comments</h4>
-      <CommentList state={state} onDelete={removeComment} />
+      <CommentList
+        state={state}
+        onDelete={removeComment}
+        onLoadMore={loadMore}
+      />
     </div>
   );
 }
@@ -144,9 +148,14 @@ function CommentForm({ onSubmit }: CommentFormProps): ReactElement {
 interface CommentListProps {
   state: CommentsState;
   onDelete: (commentId: string) => Promise<void>;
+  onLoadMore: () => Promise<void>;
 }
 
-function CommentList({ state, onDelete }: CommentListProps): ReactElement {
+function CommentList({
+  state,
+  onDelete,
+  onLoadMore,
+}: CommentListProps): ReactElement {
   if (state.status === 'loading') {
     return <p role="status">Loading comments…</p>;
   }
@@ -161,11 +170,56 @@ function CommentList({ state, onDelete }: CommentListProps): ReactElement {
   }
 
   return (
-    <ul className="comment-container">
-      {comments.map((comment) => (
-        <CommentItem key={comment.id} comment={comment} onDelete={onDelete} />
-      ))}
-    </ul>
+    <>
+      <ul className="comment-container">
+        {comments.map((comment) => (
+          <CommentItem key={comment.id} comment={comment} onDelete={onDelete} />
+        ))}
+      </ul>
+      {state.nextCursor !== null && <LoadMoreButton onLoadMore={onLoadMore} />}
+    </>
+  );
+}
+
+interface LoadMoreButtonProps {
+  onLoadMore: () => Promise<void>;
+}
+
+function LoadMoreButton({ onLoadMore }: LoadMoreButtonProps): ReactElement {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleClick(): Promise<void> {
+    setLoading(true);
+    setError('');
+    try {
+      await onLoadMore();
+    } catch (loadError) {
+      console.error('Could not load more comments:', loadError);
+      setError(
+        errorMessage(loadError, 'More comments could not be loaded. Try again.')
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="show-hide"
+        disabled={loading}
+        onClick={() => {
+          void handleClick();
+        }}
+      >
+        {loading ? 'Loading…' : 'Load more comments'}
+      </button>
+      <p role="alert" className="comment-error">
+        {error}
+      </p>
+    </>
   );
 }
 

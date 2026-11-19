@@ -11,9 +11,12 @@ export interface UseComments {
   state: CommentsState;
   addComment: (input: NewComment) => Promise<void>;
   removeComment: (commentId: string) => Promise<void>;
+  // Appends the next (older) page; rejects if the request fails.
+  loadMore: () => Promise<void>;
 }
 
-// Loads the comments of one bear from the API. The list is only updated after
+// Loads the comments of one bear from the API, one page at a time (newest
+// first). The list is only updated after
 // the API confirmed a change, so the UI never shows a comment the server
 // does not have. Callers remount the hook per bear (key), so the initial
 // 'loading' state is always correct.
@@ -24,8 +27,8 @@ export default function useComments(bearId: string): UseComments {
     const controller = new AbortController();
 
     fetchComments(bearId, controller.signal)
-      .then((comments) => {
-        setState({ status: 'success', comments });
+      .then(({ items, nextCursor }) => {
+        setState({ status: 'success', comments: items, nextCursor });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) {
@@ -50,7 +53,7 @@ export default function useComments(bearId: string): UseComments {
     const created = await createComment(bearId, input);
     setState((prev) =>
       prev.status === 'success'
-        ? { status: 'success', comments: [...prev.comments, created] }
+        ? { ...prev, comments: [created, ...prev.comments] }
         : prev
     );
   }
@@ -60,7 +63,7 @@ export default function useComments(bearId: string): UseComments {
     setState((prev) =>
       prev.status === 'success'
         ? {
-            status: 'success',
+            ...prev,
             comments: prev.comments.filter(
               (comment) => comment.id !== commentId
             ),
@@ -69,5 +72,27 @@ export default function useComments(bearId: string): UseComments {
     );
   }
 
-  return { state, addComment, removeComment };
+  async function loadMore(): Promise<void> {
+    if (state.status !== 'success' || state.nextCursor === null) {
+      return;
+    }
+    const page = await fetchComments(
+      bearId,
+      new AbortController().signal,
+      state.nextCursor
+    );
+    // A keyset cursor does not move when comments are added or deleted
+    // meanwhile, so the new page continues exactly where the list ends.
+    setState((prev) =>
+      prev.status === 'success'
+        ? {
+            status: 'success',
+            comments: [...prev.comments, ...page.items],
+            nextCursor: page.nextCursor,
+          }
+        : prev
+    );
+  }
+
+  return { state, addComment, removeComment, loadMore };
 }
