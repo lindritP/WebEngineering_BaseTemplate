@@ -4,11 +4,22 @@ import { z } from 'zod';
 import { BearListSchema, BearSchema } from '../bears/bear.js';
 import type { BearRepository } from '../bears/bearRepository.js';
 import { requireBear } from '../bears/requireBear.js';
-import { NOT_FOUND, OK } from '../httpStatus.js';
+import { BAD_REQUEST, NOT_FOUND, OK } from '../httpStatus.js';
 import { problemResponses } from '../problemDetails.js';
 
 export const BearParamsSchema = z.object({
   id: z.string().describe('Slug of the binomial name, e.g. "u-arctos"'),
+});
+
+const MAX_QUERY_LENGTH = 100;
+
+const BearListQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(MAX_QUERY_LENGTH)
+    .optional()
+    .describe('Only bears whose name contains this text (case-insensitive)'),
 });
 
 export function registerBearRoutes(
@@ -22,14 +33,15 @@ export function registerBearRoutes(
     {
       schema: {
         tags: ['bears'],
-        summary: 'List all bear species',
+        summary: 'List bear species, optionally filtered by name',
+        querystring: BearListQuerySchema,
         response: {
           [OK]: BearListSchema,
-          ...problemResponses([]),
+          ...problemResponses([BAD_REQUEST]),
         },
       },
     },
-    async () => await bears.list()
+    async ({ query: { q } }) => await bears.list(q)
   );
 
   api.get(

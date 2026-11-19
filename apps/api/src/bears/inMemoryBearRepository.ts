@@ -7,9 +7,12 @@ export class InMemoryBearRepository implements BearRepository {
 
   // Nothing here waits for anything: the methods are async only so that they
   // have the same signature as the database version.
-  async list(): Promise<Bear[]> {
+  async list(nameContains = ''): Promise<Bear[]> {
+    const needle = nameContains.toLowerCase();
     return await Promise.resolve(
-      [...this.bears].sort((a, b) => a.name.localeCompare(b.name))
+      this.bears
+        .filter((bear) => bear.name.toLowerCase().includes(needle))
+        .sort((a, b) => a.name.localeCompare(b.name))
     );
   }
 

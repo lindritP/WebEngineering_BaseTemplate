@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, ilike } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { bears } from '../db/schema.js';
 import type { Bear } from './bear.js';
@@ -18,14 +18,25 @@ const bearColumns = {
   range: bears.range,
 };
 
+// In LIKE patterns % and _ are wildcards and \ escapes them. A user typing
+// "50%" means those three characters, so each one is escaped.
+function containsPattern(text: string): string {
+  return `%${text.replaceAll(/[\\%_]/gv, String.raw`\$&`)}%`;
+}
+
 export class DrizzleBearRepository implements BearRepository {
   constructor(private readonly db: Database) {}
 
   // ORDER BY: without it Postgres may return rows in any order.
-  async list(): Promise<Bear[]> {
+  async list(nameContains = ''): Promise<Bear[]> {
     return await this.db
       .select(bearColumns)
       .from(bears)
+      .where(
+        nameContains === ''
+          ? undefined
+          : ilike(bears.name, containsPattern(nameContains))
+      )
       .orderBy(asc(bears.name));
   }
 

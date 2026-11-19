@@ -20,6 +20,24 @@ describe('bear routes', () => {
     assert.deepEqual(names, ['Brown bear', 'Giant panda']);
   });
 
+  it('filters by name, ignoring case, with ?q=', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/bears?q=PANDA' });
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(
+      res.json<Array<{ id: string }>>().map((bear) => bear.id),
+      ['a-melanoleuca']
+    );
+  });
+
+  it('returns an empty list when nothing matches and all bears for a blank q', async () => {
+    const none = await app.inject({ method: 'GET', url: '/api/bears?q=xyz' });
+    const blank = await app.inject({ method: 'GET', url: '/api/bears?q=%20' });
+
+    assert.deepEqual(none.json(), []);
+    assert.equal(blank.json<unknown[]>().length, 2);
+  });
+
   it('returns one bear by id', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/bears/u-arctos' });
 
