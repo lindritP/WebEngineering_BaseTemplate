@@ -21,10 +21,11 @@ import { registerHealthRoutes } from './routes/health.js';
 // Without arguments the app talks to PostgreSQL; tests pass their own
 // (in-memory) dependencies.
 export async function buildApp(
-  dependencies?: AppDependencies
+  dependencies?: AppDependencies,
+  { logger = true }: { logger?: boolean } = {}
 ): Promise<FastifyInstance> {
   const app = fastify({
-    logger: true,
+    logger,
     genReqId: generateRequestId,
   });
 
