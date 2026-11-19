@@ -7,8 +7,8 @@ import {
 import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
-import { createDatabase } from './db/client.js';
-import { createPool } from './db/pool.js';
+import { createDatabaseDependencies } from './db/databaseDependencies.js';
+import type { AppDependencies } from './dependencies.js';
 import { registerOpenApi } from './openapi.js';
 import { registerProblemDetails } from './problemDetails.js';
 import { generateRequestId, registerRequestIdHeader } from './requestId.js';
@@ -19,7 +19,11 @@ import { registerHealthRoutes } from './routes/health.js';
 
 // Async because plugins such as CORS are registered with await: they must be
 // in place before the routes are added.
-export async function buildApp(): Promise<FastifyInstance> {
+// Without arguments the app talks to PostgreSQL; tests pass their own
+// (in-memory) dependencies.
+export async function buildApp(
+  dependencies?: AppDependencies
+): Promise<FastifyInstance> {
   const app = fastify({
     logger: true,
     genReqId: generateRequestId,
@@ -32,14 +36,15 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   const commentStore = new InMemoryCommentStore();
 
-  // One pool for the whole process. app.close() (SIGTERM, tests) runs onClose
-  // hooks: end() waits for running queries, then closes every connection.
-  const pool = createPool(app.log);
-  app.addHook('onClose', async () => {
-    await pool.end();
-  });
-
-  const db = createDatabase(pool);
+  // app.close() (tests, a graceful shutdown) runs the onClose hooks: the
+  // production dependencies use it to end the connection pool.
+  const deps = dependencies ?? createDatabaseDependencies(app.log);
+  const { close } = deps;
+  if (close !== undefined) {
+    app.addHook('onClose', async () => {
+      await close();
+    });
+  }
 
   // Before the routes, so they all share the request id, CORS headers and
   // the error format.
@@ -48,9 +53,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   registerProblemDetails(app);
   await registerOpenApi(app);
 
-  registerHealthRoutes(app, pool);
-  registerBearRoutes(app, db);
-  registerCommentRoutes(app, commentStore, db);
+  registerHealthRoutes(app, deps.checkReady);
+  registerBearRoutes(app, deps.bears);
+  registerCommentRoutes(app, commentStore, deps.bears);
   if (config.enableDebugRoutes) {
     registerDebugRoutes(app);
   }

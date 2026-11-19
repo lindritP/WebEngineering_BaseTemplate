@@ -1,10 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { findBear } from '../bears/bearQueries.js';
+import type { BearRepository } from '../bears/bearRepository.js';
+import { requireBear } from '../bears/requireBear.js';
 import { CommentSchema, CreateCommentSchema } from '../comments/comment.js';
 import type { InMemoryCommentStore } from '../comments/commentStore.js';
-import type { Database } from '../db/client.js';
 import { NotFoundError } from '../errors.js';
 import {
   BAD_REQUEST,
@@ -21,7 +21,7 @@ const CommentParamsSchema = z.object({ commentId: z.string() });
 export function registerCommentRoutes(
   app: FastifyInstance,
   store: InMemoryCommentStore,
-  db: Database
+  bears: BearRepository
 ): void {
   const api = app.withTypeProvider<ZodTypeProvider>();
 
@@ -39,7 +39,7 @@ export function registerCommentRoutes(
       },
     },
     async ({ params: { id } }) => {
-      await findBear(db, id);
+      await requireBear(bears, id);
       return store.list(id);
     }
   );
@@ -63,7 +63,7 @@ export function registerCommentRoutes(
       },
     },
     async ({ params: { id }, body }, reply) => {
-      await findBear(db, id);
+      await requireBear(bears, id);
       const comment = store.add(id, body);
       void reply
         .code(CREATED)

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
-import type { Pool } from 'pg';
 import { z } from 'zod';
 import { ServiceUnavailableError } from '../errors.js';
 import { OK, SERVICE_UNAVAILABLE } from '../httpStatus.js';
@@ -22,20 +21,24 @@ const ReadinessSchema = z
   })
   .meta({ id: 'Readiness' });
 
-// A trivial query proves the whole path: a free pooled connection, the network
-// and a database that answers. The pool's connection timeout keeps this from
-// hanging when the database is unreachable.
-async function checkDatabase(pool: Pool): Promise<void> {
+// checkReady is injected (see dependencies.ts): in production it runs a trivial
+// query through the connection pool, whose connection timeout keeps it from
+// hanging when the database is unreachable. Whatever it rejects with becomes a
+// 503; the cause only goes to the log.
+async function assertReady(checkReady: () => Promise<void>): Promise<void> {
   try {
-    await pool.query('select 1');
+    await checkReady();
   } catch (error) {
-    throw new ServiceUnavailableError('Database check failed', {
+    throw new ServiceUnavailableError('Readiness check failed', {
       cause: error,
     });
   }
 }
 
-export function registerHealthRoutes(app: FastifyInstance, pool: Pool): void {
+export function registerHealthRoutes(
+  app: FastifyInstance,
+  checkReady: () => Promise<void>
+): void {
   const route = app.withTypeProvider<ZodTypeProvider>();
 
   // Liveness: "is the process running?" Never touches the database, so a
@@ -71,7 +74,7 @@ export function registerHealthRoutes(app: FastifyInstance, pool: Pool): void {
       },
     },
     async () => {
-      await checkDatabase(pool);
+      await assertReady(checkReady);
       return { status: 'ready' as const, database: 'up' as const };
     }
   );
