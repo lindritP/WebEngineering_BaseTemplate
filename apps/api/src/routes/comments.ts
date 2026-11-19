@@ -4,7 +4,7 @@ import { z } from 'zod';
 import type { BearRepository } from '../bears/bearRepository.js';
 import { requireBear } from '../bears/requireBear.js';
 import { CommentSchema, CreateCommentSchema } from '../comments/comment.js';
-import type { InMemoryCommentStore } from '../comments/commentStore.js';
+import type { CommentRepository } from '../comments/commentRepository.js';
 import { NotFoundError } from '../errors.js';
 import {
   BAD_REQUEST,
@@ -16,11 +16,13 @@ import {
 import { problemResponses } from '../problemDetails.js';
 import { BearParamsSchema } from './bears.js';
 
-const CommentParamsSchema = z.object({ commentId: z.string() });
+// A malformed id can never exist: 400, and Postgres is not even asked (it
+// would reject a non-uuid value with an error of its own).
+const CommentParamsSchema = z.object({ commentId: z.uuid() });
 
 export function registerCommentRoutes(
   app: FastifyInstance,
-  store: InMemoryCommentStore,
+  comments: CommentRepository,
   bears: BearRepository
 ): void {
   const api = app.withTypeProvider<ZodTypeProvider>();
@@ -40,7 +42,7 @@ export function registerCommentRoutes(
     },
     async ({ params: { id } }) => {
       await requireBear(bears, id);
-      return store.list(id);
+      return await comments.listByBear(id);
     }
   );
 
@@ -64,7 +66,7 @@ export function registerCommentRoutes(
     },
     async ({ params: { id }, body }, reply) => {
       await requireBear(bears, id);
-      const comment = store.add(id, body);
+      const comment = await comments.add(id, body);
       void reply
         .code(CREATED)
         .header('Location', `/api/comments/${comment.id}`);
@@ -72,8 +74,7 @@ export function registerCommentRoutes(
     }
   );
 
-  // Synchronous handler: the store answers immediately, and reply.send()
-  // ends the request without a body, as 204 No Content requires.
+  // reply.send() ends the request without a body, as 204 No Content requires.
   api.delete(
     '/api/comments/:commentId',
     {
@@ -83,15 +84,15 @@ export function registerCommentRoutes(
         params: CommentParamsSchema,
         response: {
           [NO_CONTENT]: z.undefined().describe('Comment deleted'),
-          ...problemResponses([NOT_FOUND]),
+          ...problemResponses([BAD_REQUEST, NOT_FOUND]),
         },
       },
     },
-    ({ params: { commentId } }, reply) => {
-      if (!store.delete(commentId)) {
+    async ({ params: { commentId } }, reply) => {
+      if (!(await comments.delete(commentId))) {
         throw new NotFoundError(`No comment with id "${commentId}"`);
       }
-      void reply.code(NO_CONTENT).send();
+      return await reply.code(NO_CONTENT).send();
     }
   );
 }

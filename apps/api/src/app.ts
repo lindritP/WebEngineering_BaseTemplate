@@ -4,7 +4,6 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
-import { InMemoryCommentStore } from './comments/commentStore.js';
 import { config } from './config.js';
 import { registerCors } from './cors.js';
 import { createDatabaseDependencies } from './db/databaseDependencies.js';
@@ -34,8 +33,6 @@ export async function buildApp(
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
-  const commentStore = new InMemoryCommentStore();
-
   // app.close() (tests, a graceful shutdown) runs the onClose hooks: the
   // production dependencies use it to end the connection pool.
   const deps = dependencies ?? createDatabaseDependencies(app.log);
@@ -55,7 +52,7 @@ export async function buildApp(
 
   registerHealthRoutes(app, deps.checkReady);
   registerBearRoutes(app, deps.bears);
-  registerCommentRoutes(app, commentStore, deps.bears);
+  registerCommentRoutes(app, deps.comments, deps.bears);
   if (config.enableDebugRoutes) {
     registerDebugRoutes(app);
   }
