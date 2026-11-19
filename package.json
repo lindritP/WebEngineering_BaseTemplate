@@ -7,6 +7,7 @@
     "build": "npm run build --workspaces --if-present",
     "preview": "npm run preview -w @bears/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "lint": "eslint \"apps/*/src/**/*.{js,ts,tsx}\"",
     "lint:fix": "eslint \"apps/*/src/**/*.{js,ts,tsx}\" --fix",
     "format": "prettier --write \"apps/*/src/**/*.{js,ts,tsx}\"",
