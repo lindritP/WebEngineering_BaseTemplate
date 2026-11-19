@@ -14,6 +14,7 @@
     "db:seed-comments": "tsx --env-file-if-exists=../../.env src/db/seedComments.ts",
     "db:explain": "tsx --env-file-if-exists=../../.env src/db/explainComments.ts",
     "test": "tsx --import ./src/test/setup.ts --test \"src/**/*.test.ts\"",
+    "demo:lost-update": "tsx --env-file-if-exists=../../.env src/db/lostUpdateDemo.ts",
     "demo:n-plus-one": "tsx --env-file-if-exists=../../.env src/db/nPlusOneDemo.ts"
   },
   "devDependencies": {
