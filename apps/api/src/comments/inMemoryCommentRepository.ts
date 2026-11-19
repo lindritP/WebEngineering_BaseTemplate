@@ -7,6 +7,8 @@ import type {
 } from './commentRepository.js';
 
 const FROM_START = 0;
+const ONE_MS = 1;
+const EPOCH = 0;
 const LAST = -1;
 const SAME = 0;
 
@@ -28,6 +30,10 @@ export class InMemoryCommentRepository implements CommentRepository {
   // keeps insertion order, so lists come out oldest first, like ORDER BY
   // created_at in the database version.
   private readonly comments = new Map<string, Comment>();
+  // Every comment gets a creation time later than the one before, so "newest
+  // first" is deterministic even when two comments arrive in one millisecond
+  // (PostgreSQL's microseconds make that practically impossible there).
+  private lastCreatedAt = EPOCH;
 
   // Nothing here waits for anything: the methods are async only so that they
   // have the same signature as the database version.
@@ -81,10 +87,15 @@ export class InMemoryCommentRepository implements CommentRepository {
       bearId,
       author: input.author,
       text: input.text,
-      createdAt: new Date().toISOString(),
+      createdAt: this.nextTimestamp(),
     };
     this.comments.set(comment.id, comment);
     return await Promise.resolve(comment);
+  }
+
+  private nextTimestamp(): string {
+    this.lastCreatedAt = Math.max(Date.now(), this.lastCreatedAt + ONE_MS);
+    return new Date(this.lastCreatedAt).toISOString();
   }
 
   async delete(id: string): Promise<boolean> {
