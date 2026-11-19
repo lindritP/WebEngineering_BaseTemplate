@@ -30,5 +30,16 @@ export default defineConfig(
       // (failed API requests, missing DOM containers); console.log stays forbidden.
       'no-console': ['error', { allow: ['error'] }],
     },
+  },
+  {
+    // Tests: describe()/it() return promises that node:test awaits itself, a
+    // shared `let app` is assigned in before(), and assertions compare against
+    // literal expected values (status codes, counts).
+    files: ['apps/*/src/**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/init-declarations': 'off',
+      '@typescript-eslint/no-magic-numbers': 'off',
+    },
   }
 );
