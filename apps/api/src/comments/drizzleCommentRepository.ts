@@ -8,7 +8,7 @@ import {
   isNull,
   sql,
 } from 'drizzle-orm';
-import type { Database } from '../db/client.js';
+import type { Queryable } from '../db/client.js';
 import { comments } from '../db/schema.js';
 import type { CommentRow } from '../db/schema.js';
 import type { Comment, CreateComment } from './comment.js';
@@ -42,7 +42,7 @@ function toComment(row: CommentRow): Comment {
 const createdAtExact = sql<string>`to_char(${comments.createdAt} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 
 export class DrizzleCommentRepository implements CommentRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Queryable) {}
 
   async listByBear(bearId: string): Promise<Comment[]> {
     const rows = await this.db
