@@ -3,6 +3,7 @@ import { buildApp } from '../app.js';
 import type { Bear } from '../bears/bear.js';
 import { InMemoryBearRepository } from '../bears/inMemoryBearRepository.js';
 import { InMemoryCommentRepository } from '../comments/inMemoryCommentRepository.js';
+import { InMemoryTransactionRunner } from '../comments/inMemoryTransactionRunner.js';
 
 export const testBears: Bear[] = [
   {
@@ -35,10 +36,12 @@ interface TestAppOptions {
 export async function buildTestApp(
   options: TestAppOptions = {}
 ): Promise<FastifyInstance> {
+  const comments = new InMemoryCommentRepository();
   return await buildApp(
     {
       bears: new InMemoryBearRepository(testBears),
-      comments: new InMemoryCommentRepository(),
+      comments,
+      transactions: new InMemoryTransactionRunner({ comments }),
       checkReady: options.checkReady ?? alwaysReady,
     },
     { logger: false }
