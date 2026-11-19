@@ -35,10 +35,18 @@ export const comments = pgTable(
       .defaultNow(),
   },
   (table) => [
-    // Postgres indexes primary keys automatically but NOT foreign keys. Every
-    // "comments of one bear" query and every cascade delete looks rows up by
-    // bear_id, so without this index each of them reads the whole table.
-    index('comments_bear_id_idx').on(table.bearId),
+    // Serves "the comments of one bear, newest first, after this position":
+    // equality on bear_id first, then the sort key (created_at, id) in the
+    // order of the query, so the rows come out of the index already sorted
+    // and no sort step is needed. Postgres indexes primary keys automatically
+    // but NOT foreign keys; the leftmost column bear_id also covers the plain
+    // "all comments of one bear" lookups and the cascade delete, which is why
+    // the single-column index from the first migration became redundant.
+    index('comments_bear_created_id_idx').on(
+      table.bearId,
+      table.createdAt,
+      table.id
+    ),
   ]
 );
 
