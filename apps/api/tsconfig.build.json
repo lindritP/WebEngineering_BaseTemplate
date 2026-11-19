@@ -1,0 +1,6 @@
+{
+  // The build compiles what runs in production; tests and test helpers are
+  // still type-checked by `npm run typecheck` (tsconfig.json).
+  "extends": "./tsconfig.json",
+  "exclude": ["src/**/*.test.ts", "src/test/**"]
+}
