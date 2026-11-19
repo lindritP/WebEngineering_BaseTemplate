@@ -17,6 +17,10 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN npm ci --omit=dev --ignore-scripts -w @bears/api && npm cache clean --force
 COPY --from=build /app/apps/api/dist apps/api/dist
+# SQL migrations, applied with: node dist/db/migrate.js
+COPY --from=build /app/apps/api/drizzle apps/api/drizzle
+# Seed data, loaded with: node dist/db/seed.js
+COPY --from=build /app/apps/api/seed apps/api/seed
 WORKDIR /app/apps/api
 USER node
 EXPOSE 3000
