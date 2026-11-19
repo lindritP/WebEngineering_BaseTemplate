@@ -10,6 +10,11 @@ interface CommentBody {
   text: string;
 }
 
+interface PageBody {
+  items: CommentBody[];
+  nextCursor: string | null;
+}
+
 describe('comment routes', () => {
   let app: FastifyInstance;
   // A fresh app (and so a fresh, empty repository) for every test.
@@ -40,20 +45,82 @@ describe('comment routes', () => {
     assert.equal(comment.bearId, 'u-arctos');
   });
 
-  it('lists the comments of one bear, oldest first', async () => {
+  async function getPage(query: string): Promise<LightMyRequestResponse> {
+    return await app.inject({
+      method: 'GET',
+      url: `/api/bears/u-arctos/comments${query}`,
+    });
+  }
+
+  it('lists the comments of one bear, newest first', async () => {
     await post('u-arctos', { author: 'A', text: 'first' });
     await post('u-arctos', { author: 'B', text: 'second' });
     await post('a-melanoleuca', { author: 'C', text: 'other bear' });
 
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/bears/u-arctos/comments',
-    });
+    const res = await getPage('');
+
+    assert.equal(res.statusCode, 200);
+    const page = res.json<PageBody>();
+    assert.deepEqual(
+      page.items.map((comment) => comment.text),
+      ['second', 'first']
+    );
+    assert.equal(page.nextCursor, null);
+  });
+
+  it('pages with limit and cursor without skipping or repeating', async () => {
+    for (const text of ['1', '2', '3', '4', '5']) {
+      // eslint-disable-next-line no-await-in-loop -- sequential on purpose: the creation order is what the test checks
+      await post('u-arctos', { author: 'A', text });
+    }
+
+    const first = (await getPage('?limit=2')).json<PageBody>();
+    const second = (
+      await getPage(`?limit=2&cursor=${first.nextCursor ?? ''}`)
+    ).json<PageBody>();
+    const third = (
+      await getPage(`?limit=2&cursor=${second.nextCursor ?? ''}`)
+    ).json<PageBody>();
+
+    const texts = [...first.items, ...second.items, ...third.items].map(
+      (comment) => comment.text
+    );
+    assert.deepEqual(texts, ['5', '4', '3', '2', '1']);
+    assert.notEqual(first.nextCursor, null);
+    assert.notEqual(second.nextCursor, null);
+    assert.equal(third.nextCursor, null);
+  });
+
+  it('keeps a page stable when a newer comment arrives meanwhile', async () => {
+    for (const text of ['1', '2', '3']) {
+      // eslint-disable-next-line no-await-in-loop -- sequential on purpose: the creation order is what the test checks
+      await post('u-arctos', { author: 'A', text });
+    }
+    const first = (await getPage('?limit=2')).json<PageBody>();
+
+    // With OFFSET this would shift every row by one and repeat "2".
+    await post('u-arctos', { author: 'A', text: 'new' });
+    const second = (
+      await getPage(`?limit=2&cursor=${first.nextCursor ?? ''}`)
+    ).json<PageBody>();
 
     assert.deepEqual(
-      res.json<CommentBody[]>().map((comment) => comment.text),
-      ['first', 'second']
+      second.items.map((comment) => comment.text),
+      ['1']
     );
+  });
+
+  it('rejects a bad limit and a made-up cursor with 400', async () => {
+    for (const query of [
+      '?limit=0',
+      '?limit=101',
+      '?limit=abc',
+      '?cursor=xyz',
+    ]) {
+      // eslint-disable-next-line no-await-in-loop -- one request per bad input, order does not matter
+      const res = await getPage(query);
+      assert.equal(res.statusCode, 400, query);
+    }
   });
 
   it('trims the input and rejects a blank author with 400', async () => {

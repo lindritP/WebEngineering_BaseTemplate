@@ -3,8 +3,13 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import type { BearRepository } from '../bears/bearRepository.js';
 import { requireBear } from '../bears/requireBear.js';
-import { CommentSchema, CreateCommentSchema } from '../comments/comment.js';
+import {
+  CommentPageSchema,
+  CommentSchema,
+  CreateCommentSchema,
+} from '../comments/comment.js';
 import type { CommentRepository } from '../comments/commentRepository.js';
+import { decodeCursor, encodeCursor } from '../comments/cursor.js';
 import { NotFoundError } from '../errors.js';
 import {
   BAD_REQUEST,
@@ -20,6 +25,33 @@ import { BearParamsSchema } from './bears.js';
 // would reject a non-uuid value with an error of its own).
 const CommentParamsSchema = z.object({ commentId: z.uuid() });
 
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+// The cursor is decoded and checked while the query is validated: a made-up
+// or damaged token is a 400 before any SQL runs.
+const CommentPageQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(MAX_PAGE_SIZE)
+    .default(DEFAULT_PAGE_SIZE)
+    .describe('Page size, at most 100'),
+  cursor: z
+    .string()
+    .transform((token, ctx) => {
+      const cursor = decodeCursor(token);
+      if (cursor === undefined) {
+        ctx.addIssue({ code: 'custom', message: 'Not a valid cursor' });
+        return z.NEVER;
+      }
+      return cursor;
+    })
+    .optional()
+    .describe('The nextCursor of the previous page'),
+});
+
 export function registerCommentRoutes(
   app: FastifyInstance,
   comments: CommentRepository,
@@ -32,17 +64,27 @@ export function registerCommentRoutes(
     {
       schema: {
         tags: ['comments'],
-        summary: 'List the comments of a bear, oldest first',
+        summary:
+          'List the comments of a bear, newest first, one page at a time',
         params: BearParamsSchema,
+        querystring: CommentPageQuerySchema,
         response: {
-          [OK]: z.array(CommentSchema),
-          ...problemResponses([NOT_FOUND]),
+          [OK]: CommentPageSchema,
+          ...problemResponses([BAD_REQUEST, NOT_FOUND]),
         },
       },
     },
-    async ({ params: { id } }) => {
+    async ({ params: { id }, query: { limit, cursor } }) => {
       await requireBear(bears, id);
-      return await comments.listByBear(id);
+      const page = await comments.pageByBear(id, {
+        limit,
+        ...(cursor === undefined ? {} : { after: cursor }),
+      });
+      return {
+        items: page.items,
+        nextCursor:
+          page.nextCursor === undefined ? null : encodeCursor(page.nextCursor),
+      };
     }
   );
 

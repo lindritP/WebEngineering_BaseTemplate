@@ -21,3 +21,16 @@ export const CommentSchema = CreateCommentSchema.extend({
 
 export type CreateComment = z.infer<typeof CreateCommentSchema>;
 export type Comment = z.infer<typeof CommentSchema>;
+
+// One page of a bear's comments. nextCursor is null on the last page.
+export const CommentPageSchema = z
+  .object({
+    items: z.array(CommentSchema),
+    nextCursor: z
+      .string()
+      .nullable()
+      .describe('Pass as ?cursor= to get the next page; null on the last page'),
+  })
+  .meta({ id: 'CommentPage' });
+
+export type CommentPage = z.infer<typeof CommentPageSchema>;
