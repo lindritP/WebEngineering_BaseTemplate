@@ -7,6 +7,13 @@ export interface PageRequest {
   after?: CommentCursor;
 }
 
+// What the report feature changes on a comment.
+export interface ReportState {
+  reportCount: number;
+  // When the comment was hidden, null while it is visible.
+  hiddenAt: string | null;
+}
+
 export interface CommentPage {
   items: Comment[];
   // Where to continue, or undefined when this was the last page.
@@ -27,6 +34,21 @@ export interface CommentRepository {
   listByBears: (bearIds: readonly string[]) => Promise<Map<string, Comment[]>>;
   // The repository assigns id and createdAt.
   add: (bearId: string, input: CreateComment) => Promise<Comment>;
+  // One comment by id, hidden ones included (they can still be reported).
+  // undefined if there is none.
+  findById: (id: string) => Promise<Comment | undefined>;
+  // Like findById, but asks the database for a row lock (SELECT ... FOR
+  // UPDATE): inside a transaction, every other transaction that wants the
+  // same lock waits until this one commits or rolls back. Outside a
+  // transaction the lock ends with the statement and protects nothing, so
+  // only a service that opened a transaction should call it.
+  findByIdForUpdate: (id: string) => Promise<Comment | undefined>;
+  // Overwrites the report state (a plain write: deciding the new values is the
+  // caller's job). undefined if there is no such comment.
+  saveReportState: (
+    id: string,
+    state: ReportState
+  ) => Promise<Comment | undefined>;
   // false if there was no such comment.
   delete: (id: string) => Promise<boolean>;
 }

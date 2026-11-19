@@ -4,6 +4,7 @@ import type {
   CommentPage,
   CommentRepository,
   PageRequest,
+  ReportState,
 } from './commentRepository.js';
 
 const FROM_START = 0;
@@ -106,6 +107,29 @@ export class InMemoryCommentRepository implements CommentRepository {
   private nextTimestamp(): string {
     this.lastCreatedAt = Math.max(Date.now(), this.lastCreatedAt + ONE_MS);
     return new Date(this.lastCreatedAt).toISOString();
+  }
+
+  async findById(id: string): Promise<Comment | undefined> {
+    return await Promise.resolve(this.comments.get(id));
+  }
+
+  // There is no row lock in a Map: ReportService's transaction runner for the
+  // in-memory version lets one transaction at a time run instead.
+  async findByIdForUpdate(id: string): Promise<Comment | undefined> {
+    return await this.findById(id);
+  }
+
+  async saveReportState(
+    id: string,
+    state: ReportState
+  ): Promise<Comment | undefined> {
+    const comment = this.comments.get(id);
+    if (comment === undefined) {
+      return undefined;
+    }
+    const updated: Comment = { ...comment, ...state };
+    this.comments.set(id, updated);
+    return await Promise.resolve(updated);
   }
 
   async delete(id: string): Promise<boolean> {

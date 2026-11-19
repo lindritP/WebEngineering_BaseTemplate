@@ -16,6 +16,7 @@ import type {
   CommentPage,
   CommentRepository,
   PageRequest,
+  ReportState,
 } from './commentRepository.js';
 
 const ONE_MORE = 1;
@@ -126,6 +127,42 @@ export class DrizzleCommentRepository implements CommentRepository {
       throw new Error('INSERT ... RETURNING returned no row');
     }
     return toComment(row);
+  }
+
+  async findById(id: string): Promise<Comment | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, id))
+      .limit(ONE_MORE);
+    return row === undefined ? undefined : toComment(row);
+  }
+
+  async findByIdForUpdate(id: string): Promise<Comment | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, id))
+      .limit(ONE_MORE)
+      // SELECT ... FOR UPDATE: the row stays locked until the surrounding
+      // transaction ends.
+      .for('update');
+    return row === undefined ? undefined : toComment(row);
+  }
+
+  async saveReportState(
+    id: string,
+    state: ReportState
+  ): Promise<Comment | undefined> {
+    const [row] = await this.db
+      .update(comments)
+      .set({
+        reportCount: state.reportCount,
+        hiddenAt: state.hiddenAt === null ? null : new Date(state.hiddenAt),
+      })
+      .where(eq(comments.id, id))
+      .returning();
+    return row === undefined ? undefined : toComment(row);
   }
 
   async delete(id: string): Promise<boolean> {

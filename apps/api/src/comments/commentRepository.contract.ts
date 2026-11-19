@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
 import type { CommentRepository } from './commentRepository.js';
 
@@ -99,6 +100,59 @@ export function describeCommentRepository(
 
       assert.equal(page.items.length, 2);
       assert.equal(page.nextCursor, undefined);
+    });
+
+    it('finds a comment by id and saves its report state', async () => {
+      const comments = create();
+      const { id } = await comments.add('u-arctos', { author: 'A', text: 'x' });
+
+      const found = await comments.findById(id);
+      assert.ok(found !== undefined);
+      assert.equal(found.reportCount, 0);
+      assert.equal(found.hiddenAt, null);
+      assert.equal(await comments.findById(randomUUID()), undefined);
+      const locked = await comments.findByIdForUpdate(id);
+      assert.ok(locked !== undefined);
+      assert.equal(locked.id, id);
+
+      const hiddenAt = new Date().toISOString();
+      const saved = await comments.saveReportState(id, {
+        reportCount: 3,
+        hiddenAt,
+      });
+      assert.ok(saved !== undefined);
+      assert.equal(saved.reportCount, 3);
+      assert.equal(saved.hiddenAt, hiddenAt);
+      assert.equal(
+        await comments.saveReportState(randomUUID(), {
+          reportCount: 1,
+          hiddenAt: null,
+        }),
+        undefined
+      );
+    });
+
+    it('does not list hidden comments, but still finds them by id', async () => {
+      const comments = create();
+      const { id } = await comments.add('u-arctos', { author: 'A', text: 'x' });
+      await comments.add('u-arctos', { author: 'B', text: 'y' });
+
+      await comments.saveReportState(id, {
+        reportCount: 3,
+        hiddenAt: new Date().toISOString(),
+      });
+
+      const page = await comments.pageByBear('u-arctos', { limit: 10 });
+      assert.deepEqual(
+        page.items.map((comment) => comment.text),
+        ['y']
+      );
+      assert.equal((await comments.listByBear('u-arctos')).length, 1);
+      assert.equal(
+        (await comments.listByBears(['u-arctos'])).get('u-arctos')?.length,
+        1
+      );
+      assert.notEqual(await comments.findById(id), undefined);
     });
 
     it('delete reports whether a comment existed', async () => {
